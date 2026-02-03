@@ -15,10 +15,10 @@ interface FrontPageProps {
     setNotes: Dispatch<React.SetStateAction<string>>;
 
 }
-export type ActionCategory = "integration" | "automation" | "output";
+// export type ActionCategory = "integration" | "automation" | "output";
 
 
-
+export type IntegrationTypes = "azure_devops"| "ClickUp" | "jira" | "outlook";
 export interface Action {
     key: ActionKey;
     title: string;
@@ -27,6 +27,7 @@ export interface Action {
     /**
      * Only used when key === "integrations"
      */
+    // IntegrationType?: IntegrationTypes;
     integration?: IntegrationOptions;
 }
 

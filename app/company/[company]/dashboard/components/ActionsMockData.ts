@@ -14,34 +14,38 @@ export const ActionsMockData: Action[] = [
         integration: "Azure DevOps",
         createText: "Create in Azure DevOps",
     },
-    //   {
-    //     key: "integrations",
-    //     title: "Integrate with ClickUp",
-    //     description:
-    //       "Create and update ClickUp tasks automatically from your notes.",
-    //     integration: "ClickUp",
-    //   },
-    //   {
+    {
+        key: "integrations",
+        title: "Integrate with ClickUp",
+        description:
+            "Create and update ClickUp tasks automatically from your notes.",
+        integration: "ClickUp",
+        createText: "Create in ClickUp",
+    },
+    // {
     //     key: "integrations",
     //     title: "Integrate with SharePoint",
     //     description:
-    //       "Store and organize notes and files in SharePoint libraries.",
+    //         "Store and organize notes and files in SharePoint libraries.",
     //     integration: "SharePoint",
-    //   },
-    //   {
-    //     key: "integrations",
-    //     title: "Integrate with Jira",
-    //     description:
-    //       "Turn action items into Jira tickets in seconds.",
-    //     integration: "Jira",
-    //   },
-    //   {
+    //     createText: "Create in SharePoint",
+    // },
+    {
+        key: "integrations",
+        title: "Integrate with Jira",
+        description:
+            "Turn action items into Jira tickets in seconds.",
+        integration: "Jira",
+        createText: "Create in Jira",
+    },
+    // {
     //     key: "integrations",
     //     title: "Integrate with Notion",
     //     description:
-    //       "Sync notes and summaries into Notion databases.",
+    //         "Sync notes and summaries into Notion databases.",
     //     integration: "Notion",
-    //   },
+    //     createText: "Create in Notion",
+    // },
 
     // ─────────────────────────────
     // Other actions

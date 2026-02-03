@@ -6,9 +6,9 @@ import { useMemo, useState } from "react";
 
 export type IntegrationOptions =
   | "Azure DevOps"
-  // | "ClickUp"
+  | "ClickUp"
   // | "SharePoint"
-  // | "Jira"
+  | "Jira"
   // | "Notion";
 
 export type ActionKey =
@@ -35,7 +35,7 @@ export const DEFAULT_CONFIG: ConfigState = {
     task_list: true,
     attach_photo: false,
   },
-  enabledProviders: ["Azure DevOps"],
+  enabledProviders: ["Azure DevOps" ],
 };
 
 /* ───────────────── Utils ───────────────── */
@@ -58,7 +58,7 @@ export function ConfigurationPage({
   const [saved, setSaved] = useState(false);
 
   const providers: IntegrationOptions[] = useMemo(
-    () => ["Azure DevOps",],
+    () => ["Azure DevOps", "ClickUp", "Jira"],
     []
   );
 

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Action } from "./frontPage";
 import { CorporateLoader } from "@/app/Components/LoadingIcon";
 import { Pages } from "../dashboardClient";
+import { ActionsBody } from "../components/ActionsBody";
 
 export default function ActionsPage({ selectedActions, onGoToFrontPage }: { selectedActions: Action[]; onGoToFrontPage: () => void }) {
     const total = selectedActions.length;
@@ -19,11 +20,11 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
         return selectedActions[currentIndex];
     }, [selectedActions, currentIndex]);
 
-    useEffect(() => {
-        if (completedActions.length === total && total > 0) {
-            setStatusMessage("All actions completed! 🎉");
-        }
-    }, [completedActions, total]);
+    // useEffect(() => {
+    //     if (completedActions.length === total && total > 0) {
+    //         setStatusMessage("All actions completed! 🎉");
+    //     }
+    // }, [completedActions, total]);
     // If no actions selected
     if (total === 0) {
         return (
@@ -44,19 +45,19 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
         setCompletedActions((prev) => (prev.includes(index) ? prev : [...prev, index]));
     }
 
-    function findNextIncomplete(fromIndex: number) {
-        for (let i = fromIndex + 1; i < total; i++) {
-            if (!completedActions.includes(i)) return i;
-        }
-        return null;
-    }
+    // function findNextIncomplete(fromIndex: number) {
+    //     for (let i = fromIndex + 1; i < total; i++) {
+    //         if (!completedActions.includes(i)) return i;
+    //     }
+    //     return null;
+    // }
 
-    function findPrevIncomplete(fromIndex: number) {
-        for (let i = fromIndex - 1; i >= 0; i--) {
-            if (!completedActions.includes(i)) return i;
-        }
-        return null;
-    }
+    // function findPrevIncomplete(fromIndex: number) {
+    //     for (let i = fromIndex - 1; i >= 0; i--) {
+    //         if (!completedActions.includes(i)) return i;
+    //     }
+    //     return null;
+    // }
 
     function goNext() {
         setCurrentIndex((v) => Math.min(total - 1, v + 1));
@@ -66,7 +67,7 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
         setCurrentIndex((v) => Math.max(0, v - 1));
     }
 
-    async function runCurrentAction() {
+    async function runCurrentAction(currentAction: Action) {
         setIsLoading(true);
 
         setTimeout(() => {
@@ -188,7 +189,11 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
 
             {!isLoading && (
                 <>
-                    {/* Content */}
+                    <div className="mt-8 mx-auto w-full max-w-3xl md:max-w-5xl xl:max-w-6xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+                        <ActionsBody action={currentAction} />
+
+                    </div>
+                    {/* Content
                     <div className="mt-8">
                         <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
                             <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
@@ -217,7 +222,7 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
                                 <div className="mt-6 flex justify-end gap-2">
                                     <button
                                         type="button"
-                                        onClick={runCurrentAction}
+                                        onClick={() => runCurrentAction(currentAction)}
                                         className="rounded-xl bg-blue-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800"
                                     >
                                         {currentAction.createText}
@@ -226,7 +231,7 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
                             )}
 
                         </div>
-                    </div>
+                    </div> */}
 
                     {/* Nav buttons */}
                     <div className="flex items-center justify-center gap-2 pt-6">
