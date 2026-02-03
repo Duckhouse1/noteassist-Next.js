@@ -1,5 +1,5 @@
-import { Dispatch, useContext, useRef, useState } from "react";
-import { ActionsMockData } from "../components/ActionsMockData";
+import { Dispatch, useContext, useRef } from "react";
+// import { ActionsMockData } from "../components/ActionsMockData";
 import { ActionKey, IntegrationOptions } from "./ConfigurationPage";
 import { LoadingContext } from "@/app/Contexts";
 
@@ -174,7 +174,7 @@ export const FrontPage: React.FC<FrontPageProps> = ({ company, setCurrentPage, s
                                 {/* Big textarea */}
                                 <textarea
                                     placeholder="Start typing… (Meeting notes, tasks, decisions, etc.)"
-                                    className="min-h-[420px] w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
+                                    className="min-h-105 w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-blue-300 focus:ring-4 focus:ring-blue-100"
                                     value={notes}
                                     onChange={(e) => setNotes(e.target.value)}
                                 />
@@ -230,6 +230,11 @@ export const FrontPage: React.FC<FrontPageProps> = ({ company, setCurrentPage, s
                             {notes.length > 0 && (
                                 <button type="button" className="inline-flex w-full items-center justify-center rounded-xl bg-blue-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-200"
                                     onClick={() => {
+
+                                        window.gtag?.('event', 'select_actions_click', {
+                                            button_text: 'Select actions!',
+                                        });
+
                                         actionsRef.current?.scrollIntoView({ behavior: 'smooth' });
                                     }}
                                 >
