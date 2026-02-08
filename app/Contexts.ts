@@ -15,15 +15,16 @@ export const LoadingContext = createContext<LoadingContextProps>({
 });
 
 
-interface OpenAIActionSolutionsMapContextProps {
-    OpenAISolutionsMap: Map<string, OpenAIResponse>;
-    setOpenAISolutionsMap: (map: Map<string, OpenAIResponse>) => void;
-}
+export type OpenAIActionSolutionsMapContextProps = {
+  OpenAISolutionsMap: Map<string, OpenAIResponse>;
+  setOpenAISolutionsMap: (key: string, value: OpenAIResponse) => void;
+};
 
-export const OpenAIActionSolutionsMapContext = createContext<OpenAIActionSolutionsMapContextProps>({
+export const OpenAIActionSolutionsMapContext =
+  createContext<OpenAIActionSolutionsMapContextProps>({
     OpenAISolutionsMap: new Map<string, OpenAIResponse>(),
     setOpenAISolutionsMap: () => {},
-});
+  });
 
 
 interface NotesContextProps{

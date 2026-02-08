@@ -236,7 +236,7 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
                         </div>
                         {/* {showNotes && <NotesBody />} */}
                         <ShowNotesBodyContext.Provider value={{ show: showNotes, setShowNoteBody: setShowNotes }}>
-                            {<ActionsBody action={currentAction} />}
+                            <ActionsBody action={currentAction} />
                         </ShowNotesBodyContext.Provider>
                     </div>
 

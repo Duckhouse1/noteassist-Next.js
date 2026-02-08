@@ -17,7 +17,7 @@ export const IntegrationBody = ({ IntegrationOption }: { IntegrationOption: Inte
         const response = OpenAISolutionsMap.get(IntegrationOption)
         if (response?.type === "devops_tasks") {
             return (
-                <DevOpsPreBody aiSolution={response.content} />
+                <DevOpsPreBody integrationKey={IntegrationOption} />
             )
         }
 

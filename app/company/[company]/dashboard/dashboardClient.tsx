@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useCallback, useState } from "react";
 import { FrontPage } from "./pages/frontPage";
 import ActionsPage from "./pages/ActionsPage";
 import { SettingsHoverMenu } from "./components/ConfigDropDown";
@@ -26,7 +26,17 @@ export default function DashboardClient({ company }: { company: string }) {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     // In DashboardClient
     // const [openAIResponses, setOpenAIResponses] = useState<OpenAIResponse[]>([]);
-    const [actionAISolutions, setActionAISolutions] = useState<Map<string, OpenAIResponse>>(new Map());
+    const [actionAISolutions, setActionAISolutions] = useState<Map<string, OpenAIResponse>>(
+        () => new Map()
+    );
+
+    const setSolutionForKey = useCallback((key: string, value: OpenAIResponse) => {
+        setActionAISolutions((prev) => {
+            const next = new Map(prev);
+            next.set(key, value);
+            return next;
+        });
+    }, []);
 
 
     const goToActionsPageClickHandler = () => {
@@ -76,7 +86,8 @@ export default function DashboardClient({ company }: { company: string }) {
     }, [config]);
 
     return (
-        <OpenAIActionSolutionsMapContext.Provider value={{ OpenAISolutionsMap: actionAISolutions, setOpenAISolutionsMap: setActionAISolutions }}>
+        <OpenAIActionSolutionsMapContext.Provider
+            value={{ OpenAISolutionsMap: actionAISolutions, setOpenAISolutionsMap: setSolutionForKey, }}>
             <main className="min-h-screen bg-slate-50">
                 {/* Top navigation stays white */}
                 <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white backdrop-blur">
