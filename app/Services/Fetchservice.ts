@@ -3,42 +3,44 @@
 import { DevOpsTeamsProps } from "../company/[company]/dashboard/components/IntegrationBodys/DevOpsPreBody";
 
 export interface DevOpsProjectsProps {
-    id: string;
-    name: string;
+  id: string;
+  name: string;
 }
 
 
 
 export interface DevOpsTeamsResponse {
-    count: number;
-    value: DevOpsTeamsProps[];
+  count: number;
+  value: DevOpsTeamsProps[];
 }
 
-const pat = process.env.DevOpsPAT; // do not hardcode
-
+const pat = ""; // do not hardcode
+console.log("token " + pat);
 const FetchDevOpsProjects = async (): Promise<DevOpsProjectsProps[]> => {
-    try {
-      const encodedPat = btoa(`:${pat}`);
-      const response = await fetch(
-        "https://dev.azure.com/noteTester/_apis/projects?api-version=7.2-preview.1",
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Basic ${encodedPat}`,
-          },
-        }
-      );
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+  try {
+    const encodedPat = btoa(`:${pat}`);
+    const response = await fetch(
+      "https://dev.azure.com/noteTester/_apis/projects?api-version=7.2-preview.1",
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Basic ${encodedPat}`,
+        },
       }
-      const data = await response.json() as DevOpsProjectsReturnProps;
-      return data.value;
-    } catch (error) {
-      console.error("Error fetching projects:", error);
-      throw error;
+    );
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
-  };
+
+    const data = await response.json() as DevOpsProjectsReturnProps;
+ 
+    return data.value;
+  } catch (error) {
+    console.error("Error fetching projects:", error);
+    throw error;
+  }
+};
 
 
 
@@ -80,28 +82,28 @@ export interface DevOpsSprintProps {
 
 
 const FetchDevOpsSprintsByTeam = async (teamId: string): Promise<DevOpsSprintProps[]> => {
-    try {
-      const encodedPat = btoa(`:${pat}`);
-      const response = await fetch(
-        `https://dev.azure.com/noteTester/NoteAssistTest/${teamId}/_apis/work/teamsettings/iterations?api-version=7.2-preview.1`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Basic ${encodedPat}`,
-          },
-        }
-      );
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+  try {
+    const encodedPat = btoa(`:${pat}`);
+    const response = await fetch(
+      `https://dev.azure.com/noteTester/NoteAssistTest/${teamId}/_apis/work/teamsettings/iterations?api-version=7.2-preview.1`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Basic ${encodedPat}`,
+        },
       }
-      const data = await response.json() as DevOpsSprintReturnProps;
-      return data.value;
-    } catch (error) {
-      console.error("Error fetching sprints:", error);
-      return [];
+    );
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
-  };
+    const data = await response.json() as DevOpsSprintReturnProps;
+    return data.value;
+  } catch (error) {
+    console.error("Error fetching sprints:", error);
+    return [];
+  }
+};
 
 export interface DevOpsProjectsReturnProps {
   count: number;
@@ -114,8 +116,8 @@ export interface DevOpsProjectsProps {
 
 
 const FethService = {
-    FetchAllTeamsByProjectID,
-    FetchSprintsByTeam: FetchDevOpsSprintsByTeam,
-    FetchProjects: FetchDevOpsProjects,
+  FetchAllTeamsByProjectID,
+  FetchSprintsByTeam: FetchDevOpsSprintsByTeam,
+  FetchProjects: FetchDevOpsProjects,
 }
 export default FethService;

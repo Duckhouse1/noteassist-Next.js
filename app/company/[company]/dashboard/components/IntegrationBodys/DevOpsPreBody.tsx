@@ -1,5 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import FetchService, { DevOpsSprintProps } from "../../../../../Services/Fetchservice";
+import { Assignee, DevOpsFeature, DevOpsPBI, DevOpsResponse, DevOpsTask, OpenAIResponse } from "@/app/types/OpenAI";
+import { DevOpsTaskTypes, TasksDisplayPanel } from "../TaskDisplayPanel";
+import { CreateDevopsElementModal } from "./CreateFeatureModal";
+import { ShowNotesBodyContext } from "@/app/Contexts";
+import { NotesBody } from "../NotesBody";
+import { title } from "process";
 
 export interface DevOpsProjectsProps {
     id: string;
@@ -10,13 +16,27 @@ export interface DevOpsTeamsProps {
     id: string;
     name: string;
 }
-const mockTasks = [
-    { id: "T-101", title: "Set up sprint backlog" },
-    { id: "T-102", title: "Review pipeline failures" },
-    { id: "T-103", title: "Update deployment docs" },
-];
 
-export const DevOpsPreBody = () => {
+export interface DisplayedElementProps {
+    type: DevOpsTaskTypes;
+    data: DevOpsFeature | DevOpsPBI | DevOpsTask;
+}
+
+export interface newDevOpsElement {
+    type: DevOpsTaskTypes;
+    id: string;
+    parentID: string | null
+    title: string;
+    description: string;
+    assignees?: Assignee[]
+}
+export type RemoveAction =
+    | { type: "Feature"; featureId: string }
+    | { type: "PBIS"; featureId: string; pbiId: string }
+    | { type: "Tasks"; featureId: string; pbiId: string; taskId: string };
+
+
+export const DevOpsPreBody = ({ aiSolution }: { aiSolution: DevOpsResponse }) => {
     const [projects, setProjects] = useState<DevOpsProjectsProps[]>([]);
     const [selectedProject, setSelectedProject] = useState<DevOpsProjectsProps | null>(null);
 
@@ -26,11 +46,23 @@ export const DevOpsPreBody = () => {
     const [sprints, setSprints] = useState<DevOpsSprintProps[]>([]);
     const [selectedSprint, setSelectedSprint] = useState<DevOpsSprintProps | null>(null);
 
+    const { show } = useContext(ShowNotesBodyContext)
+
+    const [displayedElement, setDisplayedElement] = useState<DisplayedElementProps | null>(null);
+    const [features, setFeatures] = useState(aiSolution.features)
     const [loadingProjects, setLoadingProjects] = useState(false);
     const [loadingTeams, setLoadingTeams] = useState(false);
     const [loadingSprints, setLoadingSprints] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const [showFeatureModal, setShowFeatureModal] = useState(false)
+
+    const [creatingElement, setCreatingElement] = useState<{ type: DevOpsTaskTypes; parentId: string | null; } | null>(null);
+
+    const onActionTaskClick = (displayedElement: DisplayedElementProps) => {
+        setDisplayedElement(displayedElement);
+        console.log("Clicked task type:", displayedElement.type, "with ID:", displayedElement.data.id, "Title:", displayedElement.data.title, "Description:", displayedElement.data.description);
+    }
     // Fetch projects once
     useEffect(() => {
         let cancelled = false;
@@ -99,24 +131,131 @@ export const DevOpsPreBody = () => {
         return () => {
             cancelled = true;
         };
-    }, [selectedTeam?.id]);
+    }, [selectedTeam]);
 
     const canPickTeam = !!selectedProject && !loadingTeams;
     const canPickSprint = !!selectedTeam && !loadingSprints;
 
-    const selectionSummary = useMemo(() => {
-        return [
-            { label: "Project", value: selectedProject?.name ?? "—" },
-            { label: "Team", value: selectedTeam?.name ?? "—" },
-            { label: "Sprint", value: selectedSprint?.name ?? "—" },
-        ];
-    }, [selectedProject, selectedTeam, selectedSprint]);
 
+
+    const onTaskRemove = (action: RemoveAction) => {
+        setFeatures(prev => {
+            if (!prev) return prev;
+
+            switch (action.type) {
+                case "Feature":
+                    return prev.filter(f => f.id !== action.featureId);
+
+                case "PBIS":
+                    return prev.map(f =>
+                        f.id !== action.featureId
+                            ? f
+                            : { ...f, pbis: f.pbis.filter(p => p.id !== action.pbiId) }
+                    );
+
+                case "Tasks":
+                    return prev.map(f =>
+                        f.id !== action.featureId
+                            ? f
+                            : {
+                                ...f,
+                                pbis: f.pbis.map(p =>
+                                    p.id !== action.pbiId
+                                        ? p
+                                        : { ...p, tasks: p.tasks.filter(t => t.id !== action.taskId) }
+                                ),
+                            }
+                    );
+            }
+        });
+    };
+
+
+
+    const onCreateNewElementClickHandler = (type: DevOpsTaskTypes, parentId: string | null) => {
+        setCreatingElement({ type, parentId, });
+        setShowFeatureModal(true);
+    };
+
+    useEffect(() => {
+        console.log("Dette er features");
+        console.log(features);
+    }, [features, setFeatures])
+
+    const CreateNewDevOpsElement = (title: string, description: string) => {
+        console.log(creatingElement?.type);
+        console.log(creatingElement?.parentId);
+        setFeatures(prev => {
+            // 1) Create Feature (top-level)
+            if (creatingElement?.parentId === null) {
+                return [
+                    ...prev,
+                    {
+                        id: crypto.randomUUID(),
+                        title,
+                        description,
+                        pbis: [],
+                    },
+                ];
+            }
+
+            // 2) Create PBI under a Feature
+            if (creatingElement?.type === "PBI") {
+                const newPBI: DevOpsPBI = {
+                    id: crypto.randomUUID(),
+                    title,
+                    description,
+                    tasks: [],
+                };
+
+                return prev.map(feature =>
+                    feature.id === creatingElement.parentId
+                        ? { ...feature, pbis: [...feature.pbis, newPBI] }
+                        : feature
+                );
+            }
+
+            // 3) Create Task under a PBI (parentId should be the PBI id)
+            if (creatingElement?.type === "Task") {
+                const newTask: DevOpsTask = {
+                    id: crypto.randomUUID(),
+                    title,
+                    description,
+                    // add other required fields here
+                };
+
+                return prev.map(feature => ({
+                    ...feature,
+                    pbis: feature.pbis.map(pbi =>
+                        pbi.id === creatingElement.parentId
+                            ? { ...pbi, tasks: [...pbi.tasks, newTask] }
+                            : pbi
+                    ),
+                }));
+            }
+
+            return prev;
+        });
+    };
+
+    if (show) {
+        return <NotesBody />
+    }
     return (
-        <div className="w-full max-w-2xl md:max-w-4xl xl:max-w-5xl flex flex-row gap-2">
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm flex-2">
+        <div className="w-full flex flex-row gap-2 items-stretch min-h-0 max-h-[80vh]">
+
+            {showFeatureModal &&
+                <CreateDevopsElementModal
+                    type={creatingElement!.type}
+                    onClose={() => setShowFeatureModal(false)}
+                    open={showFeatureModal}
+                    onSubmit={(data: { title: string; description: string; }) => CreateNewDevOpsElement(data.title, data.description)} />}
+
+
+
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm flex-[2] flex flex-col min-h-0">
                 {/* Header */}
-                <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-5">
+                <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-5 flex-shrink-0">
                     <div>
                         <div className="flex items-center gap-2">
                             <div className="grid h-9 w-9 place-items-center rounded-xl bg-slate-900 text-white">
@@ -154,7 +293,7 @@ export const DevOpsPreBody = () => {
                 </div>
 
                 {/* Body */}
-                <div className="p-5">
+                <div className="p-5 flex-1 min-h-0 flex flex-col">
                     {error && (
                         <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                             {error}
@@ -261,95 +400,124 @@ export const DevOpsPreBody = () => {
                                 ))}
                             </select>
                         </Field>
-
-                        {/* Summary */}
-                        {/* <div className="col-span-full md:col-span-3">
-                            <div className="flex h-full min-h-[88px] w-full flex-col justify-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                                <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                                    Selection
-                                </div>
-
-                                <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3">
-                                    {selectionSummary.map((row) => (
-                                        <div
-                                            key={row.label}
-                                            className="flex flex-col rounded-md bg-white px-2 py-1.5 shadow-sm"
-                                        >
-                                            <div className="text-[10px] font-medium text-slate-400">
-                                                {row.label}
-                                            </div>
-                                            <div className="truncate text-[11px] font-semibold text-slate-900 leading-tight">
-                                                {row.value}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div> */}
-
-
-
-                        {/* CTA
-                        <button
-                            type="button"
-                            className="mt-2 inline-flex items-center justify-center rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40"
-                            disabled={!selectedProject || !selectedTeam || !selectedSprint}
-                            onClick={() => {
-                                // Use selections here
-                                console.log("Selected:", { selectedProject, selectedTeam, selectedSprint });
-                            }}
-                        >
-                            Continue
-                        </button> */}
-
-
-                        {selectedSprint && (
-                            <div className="col-span-full md:col-span-3">
-                                <div className="flex w-full flex-col rounded-lg border border-slate-200 bg-slate-50 px-3 py-4 pb-6">
-                                    {/* Header */}
-                                    <div className="flex items-center justify-end">
-                                        <button className="rounded-md bg-slate-900 px-3 py-1 text-xs font-semibold text-white hover:bg-slate-800">
-                                            NEW +
-                                        </button>
-                                    </div>
-
-                                    {/* Body */}
-                                    <div className="mt-2 grid w-full grid-cols-3 gap-2">
-                                        {/* Left / Mid section */}
-                                        <div className="col-span-2 flex flex-col gap-1.5">
-                                            {mockTasks.map((task) => (
-                                                <div
-                                                    key={task.id}
-                                                    className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs shadow-sm"
-                                                >
-                                                    <span className="truncate font-medium text-slate-900">
-                                                        {task.title}
-                                                    </span>
-                                                    <span className="ml-2 shrink-0 text-[10px] text-slate-400">
-                                                        {task.id}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                        {/* Right spacer / future content */}
-                                        <div className="col-span-1" />
-                                    </div>
-                                </div>
-                            </div>
-
-                        )}
-
                     </div>
+                    {displayedElement && (
+                        <div className="mt-4 flex-1 min-h-0">
+
+                            <DevOpsTasksInfoPanel
+                                type={displayedElement.type}
+                                title={displayedElement.data.title}
+                                description={displayedElement.data.description}
+                                asignee={displayedElement.data.Assignee}
+
+                            />
+                        </div>
+
+                    )}
                 </div>
+
             </div>
-            {/* Task modal helper */}
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm flex-1 p-5 ">
-                <h1 className="text-lg font-semibold text-slate-900">Action - Tasks</h1>
+            <div className="flex-1 min-h-0 max-h-[calc(100vh-160px)]">
+                <TasksDisplayPanel features={features} onClick={onActionTaskClick} onRemove={(type) => onTaskRemove(type)} onCreateNewElementClick={(type, parentId) => onCreateNewElementClickHandler(type, parentId)} />
             </div>
         </div>
     );
 };
+
+
+function DevOpsTasksInfoPanel({ type, title, description, asignee }: { type: string; title: string; description: string; asignee: Assignee | undefined }) {
+    return (
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm w-full h-full flex flex-col p-6 min-h-0">
+
+            {/* Header */}
+            <h1 className="text-lg font-semibold text-slate-900 mb-6 flex-shrink-0">
+                {type} - {title}
+            </h1>
+
+            {/* Scrollable content */}
+            <div className="flex-1 min-h-0 overflow-y-auto">
+                <div className="space-y-4">
+                    {type && title ? (
+                        <>
+                            <div>
+                                <span className="inline-block px-2 py-1 text-xs font-medium text-slate-600 bg-slate-100 rounded">
+                                    {type}
+                                </span>
+                            </div>
+
+                            {/* <h2 className="text-base font-semibold text-slate-900">
+                                {title}
+                            </h2> */}
+                        </>
+                    ) : (
+                        <p className="text-sm text-slate-500">
+                            Select a task from the list to see more details here.
+                        </p>
+                    )}
+
+                    <div className="mt-4 pt-4 border-t border-slate-200">
+                        <h3 className="text-sm font-semibold text-slate-900 mb-2">
+                            Description
+                        </h3>
+                        <p className="text-sm text-slate-600 leading-relaxed">
+                            {description}
+                        </p>
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-slate-700">
+                            {asignee ? "Assignee" : "Choose assignee"}
+                        </label>
+
+                        <div className="relative">
+                            <select
+                                className="
+                                    w-full appearance-none rounded-lg border border-slate-200
+                                    bg-white px-3 py-2.5 pr-9 text-sm text-slate-900
+                                    shadow-sm outline-none transition
+                                    focus:border-slate-300 focus:ring-4 focus:ring-blue-100
+                                    disabled:bg-slate-50 disabled:text-slate-500
+                                "
+                                defaultValue=""
+                            >
+                                <option value="" disabled>
+                                    Select assignee
+                                </option>
+                                {/* map assignees here */}
+                            </select>
+
+                            {/* Chevron icon */}
+                            <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                                    <path
+                                        fillRule="evenodd"
+                                        d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z"
+                                        clipRule="evenodd"
+                                    />
+                                </svg>
+                            </div>
+                        </div>
+
+                        {asignee && (
+                            <p className="text-xs text-slate-500">
+                                Currently assigned to <span className="font-medium">No asignee</span>
+                            </p>
+                        )}
+                        <div>
+                            <select name="" id="">
+                                <option value="">
+                                    Select Work Item Type
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                    
+
+                </div>
+            </div>
+        </div>
+    );
+}
+
 
 // Small “design system” helper
 function Field({

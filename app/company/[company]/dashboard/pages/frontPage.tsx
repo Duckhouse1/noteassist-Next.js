@@ -2,6 +2,7 @@ import { Dispatch, useContext, useRef } from "react";
 // import { ActionsMockData } from "../components/ActionsMockData";
 import { ActionKey, IntegrationOptions } from "./ConfigurationPage";
 import { LoadingContext } from "@/app/Contexts";
+import { OpenAIResponse } from "@/app/types/OpenAI";
 
 
 
@@ -13,12 +14,13 @@ interface FrontPageProps {
     actions: Action[];
     notes: string;
     setNotes: Dispatch<React.SetStateAction<string>>;
+    onGoToActionsPageClick: () => void;
 
 }
 // export type ActionCategory = "integration" | "automation" | "output";
 
 
-export type IntegrationTypes = "azure_devops"| "ClickUp" | "jira" | "outlook";
+export type IntegrationTypes = "azure_devops" | "ClickUp" | "jira" | "outlook";
 export interface Action {
     key: ActionKey;
     title: string;
@@ -32,11 +34,10 @@ export interface Action {
 }
 
 
-export const FrontPage: React.FC<FrontPageProps> = ({ company, setCurrentPage, setSelectedActions, selectedActions, actions, notes, setNotes }) => {
+export const FrontPage: React.FC<FrontPageProps> = ({ company, setCurrentPage, setSelectedActions, selectedActions, actions, notes, setNotes, onGoToActionsPageClick }) => {
     const { setIsLoading } = useContext(LoadingContext);
     // const [selectedActions, setSelectedActions] = useState<Action[]>([]);
     // const [notes, setNotes] = useState<string>("");
-    const ref = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const actionsRef = useRef<HTMLDivElement>(null);
 
@@ -130,7 +131,7 @@ export const FrontPage: React.FC<FrontPageProps> = ({ company, setCurrentPage, s
             </div>
 
             {/* Content */}
-            <div className="mx-auto max-w-6xl px-6 py-8">
+            <div className="mx-auto w-full max-w-7xl 2xl:max-w-[1600px] px-4 sm:px-6 lg:px-8 py-8">
                 {/* Page heading */}
                 <div className="mb-6">
                     <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
@@ -304,11 +305,7 @@ export const FrontPage: React.FC<FrontPageProps> = ({ company, setCurrentPage, s
                         <div>
                             {selectedActions.length > 0 && (
                                 <button onClick={() => {
-                                    setIsLoading(true);
-                                    ref.current = setTimeout(() => {
-                                        setCurrentPage("actions");
-                                        setIsLoading(false);
-                                    }, 3000);
+                                    onGoToActionsPageClick();
 
                                 }} className="inline-flex w-full items-center justify-center rounded-xl bg-blue-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-200 cursor-pointer">
                                     Go to actions page

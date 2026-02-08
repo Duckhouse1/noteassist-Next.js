@@ -1,13 +1,26 @@
+import { useContext, useEffect } from "react"
 import { IntegrationOptions } from "../pages/ConfigurationPage"
 import { DevOpsPreBody } from "./IntegrationBodys/DevOpsPreBody"
+import { OpenAIActionSolutionsMapContext, ShowNotesBodyContext } from "@/app/Contexts"
+import { NotesBody } from "./NotesBody"
 
-export const IntegrationBody = ({IntegrationOption} : {IntegrationOption: IntegrationOptions}) => {
+export const IntegrationBody = ({ IntegrationOption }: { IntegrationOption: IntegrationOptions }) => {
+    const { OpenAISolutionsMap } = useContext(OpenAIActionSolutionsMapContext)
 
+    useEffect(() => {
+        console.log("IntegrationBody OpenAISolutionsMap:", OpenAISolutionsMap);
+        console.log("OpenAISolutionsMap.get('Azure DevOps'):", OpenAISolutionsMap.get("Azure DevOps"));
+    }, [OpenAISolutionsMap]);
 
+    
     if (IntegrationOption === "Azure DevOps") {
-        return (
-            <DevOpsPreBody />
-        )
+        const response = OpenAISolutionsMap.get(IntegrationOption)
+        if (response?.type === "devops_tasks") {
+            return (
+                <DevOpsPreBody aiSolution={response.content} />
+            )
+        }
+
     }
     if (IntegrationOption === "ClickUp") {
         return (

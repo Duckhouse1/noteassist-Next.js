@@ -1,12 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { Action } from "./frontPage";
 import { CorporateLoader } from "@/app/Components/LoadingIcon";
-import { Pages } from "../dashboardClient";
+// import { Pages } from "../dashboardClient";
 import { ActionsBody } from "../components/ActionsBody";
+import { OpenAIResponse } from "@/app/types/OpenAI";
+import { NotesBody } from "../components/NotesBody";
+import { ShowNotesBodyContext } from "@/app/Contexts";
 
-export default function ActionsPage({ selectedActions, onGoToFrontPage }: { selectedActions: Action[]; onGoToFrontPage: () => void }) {
+
+
+
+export default function ActionsPage({ selectedActions, onGoToFrontPage }: { selectedActions: Action[]; onGoToFrontPage: () => void; }) {
     const total = selectedActions.length;
 
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -15,6 +21,8 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
     // track completion by index (your current approach)
     const [completedActions, setCompletedActions] = useState<number[]>([]);
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+    const [showNotes, setShowNotes] = useState(false)
 
     const currentAction = useMemo(() => {
         return selectedActions[currentIndex];
@@ -60,11 +68,19 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
     // }
 
     function goNext() {
+
         setCurrentIndex((v) => Math.min(total - 1, v + 1));
+
+        requestAnimationFrame(() => {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        });
     }
 
     function goBack() {
         setCurrentIndex((v) => Math.max(0, v - 1));
+        requestAnimationFrame(() => {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        });
     }
 
     async function runCurrentAction(currentAction: Action) {
@@ -79,9 +95,9 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
 
 
     return (
-        <div className="mx-auto max-w-6xl px-6 py-8">
+        <div className="mx-auto w-full max-w-7xl 2xl:max-w-[1600px] px-4 sm:px-6 lg:px-8 py-8">
             {/* Top row */}
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_auto_1fr] md:items-start">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_auto_1fr] md:items-center">
                 {/* Left: current action */}
                 <div className="inline-flex max-w-xs flex-col gap-1 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
                     <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
@@ -189,49 +205,41 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
 
             {!isLoading && (
                 <>
-                    <div className="mt-8 mx-auto w-full max-w-3xl md:max-w-5xl xl:max-w-6xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-                        <ActionsBody action={currentAction} />
+                    <div className="mt-2 w-full rounded-2xl border border-slate-200 bg-white
+                pt-4 pb-6 px-6 sm:px-8 shadow-sm">
+                        <div className="flex justify-center mb-3">
+                            <div className="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1 shadow-sm">
+                                <button
+                                    onClick={() => setShowNotes(true)}
+                                    className={[
+                                        "px-5 py-2 text-sm font-semibold rounded-lg transition-all duration-200",
+                                        showNotes
+                                            ? "bg-blue-900 text-white shadow ring-1 ring-blue-900/20"
+                                            : "text-slate-500 hover:text-slate-700"
+                                    ].join(" ")}
+                                >
+                                    Notes
+                                </button>
 
-                    </div>
-                    {/* Content
-                    <div className="mt-8">
-                        <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-                            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-                                Content body
-                            </h1>
-                            <p className="mt-2 text-sm text-slate-600">
-                                This is where you’ll render the UI for the selected action:
-                                <span className="font-medium text-slate-800">
-                                    {" "}
-                                    {currentAction.title}
-                                </span>
-                                .
-                            </p>
-
-                            <div className="mt-6 rounded-2xl border border-dashed border-slate-300 bg-slate-50/40 p-10 text-center text-sm text-slate-600">
-                                Action-specific component goes here.
+                                <button
+                                    onClick={() => setShowNotes(false)}
+                                    className={[
+                                        "px-5 py-2 text-sm font-semibold rounded-lg transition-all duration-200",
+                                        !showNotes
+                                            ? "bg-blue-900 text-white shadow ring-1 ring-blue-900/20"
+                                            : "text-slate-500 hover:text-slate-700"
+                                    ].join(" ")}
+                                >
+                                    Action
+                                </button>
                             </div>
-                            {completedActions.includes(currentIndex) ? (
-                                <div className="mt-6 flex justify-end gap-2">
-
-                                    <p className="mt-4 text-sm font-medium text-emerald-700">
-                                        This action is completed.
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="mt-6 flex justify-end gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => runCurrentAction(currentAction)}
-                                        className="rounded-xl bg-blue-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800"
-                                    >
-                                        {currentAction.createText}
-                                    </button>
-                                </div>
-                            )}
-
                         </div>
-                    </div> */}
+                        {/* {showNotes && <NotesBody />} */}
+                        <ShowNotesBodyContext.Provider value={{ show: showNotes, setShowNoteBody: setShowNotes }}>
+                            {<ActionsBody action={currentAction} />}
+                        </ShowNotesBodyContext.Provider>
+                    </div>
+
 
                     {/* Nav buttons */}
                     <div className="flex items-center justify-center gap-2 pt-6">
@@ -239,16 +247,16 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
                             type="button"
                             onClick={goBack}
                             disabled={currentIndex === 0}
-                            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-2 text-lg font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             Back
                         </button>
 
                         <button
                             type="button"
-                            onClick={goNext}
+                            onClick={() => goNext()}
                             disabled={currentIndex === total - 1}
-                            className="rounded-xl bg-blue-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="cursor-pointer rounded-xl bg-blue-900 px-6 py-2 text-lg font-semibold text-white shadow-sm transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             Next
                         </button>
