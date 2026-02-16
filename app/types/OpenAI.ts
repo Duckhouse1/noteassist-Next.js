@@ -1,19 +1,29 @@
 // types/OpenAI.ts
 
+import { DevOpsArea, DevOpsIteration } from "../company/[company]/dashboard/components/IntegrationBodys/DevOps/DevOpsPreBody"
+import { DevOpsProjectsProps } from "../Services/DevOpsServices/Fetchservice"
+
 // Specific response types
 
 export type DevOpsTaskTypes = "Features"
 
 export interface Assignee {
-    id: string
-    name:string
+    identity: {
+        id: string
+        displayName: string
+        uniqueName: string
+        imageUrl: string
+    }
 }
 
 export interface DevOpsFeature {
     id: string;
     title: string;
     description: string;
-    Assignee?: Assignee
+    Assignee?: Assignee;
+    Project?: DevOpsProjectsProps;
+    Area?: DevOpsArea;
+    Iteration?: DevOpsIteration;
     pbis: DevOpsPBI[];
 }
 
@@ -21,7 +31,10 @@ export interface DevOpsPBI {
     id: string;
     title: string;
     description: string;
-    Assignee?: Assignee
+    Assignee?: Assignee;
+    Project?: DevOpsProjectsProps;
+    Area?: DevOpsArea;
+    Iteration?: DevOpsIteration;
     tasks: DevOpsTask[];
 }
 
@@ -30,7 +43,9 @@ export interface DevOpsTask {
     title: string;
     description: string;
     Assignee?: Assignee
-
+    Project?: DevOpsProjectsProps;
+    Area?: DevOpsArea;
+    Iteration?: DevOpsIteration;
 }
 
 export interface DevOpsResponse {
@@ -71,5 +86,5 @@ export type OpenAIResponse =
     | { type: "devops_tasks"; content: DevOpsResponse }
     | { type: "jira_tasks"; content: DevOpsResponse }
     | { type: "email_draft"; content: EmailDraft }
-    | { type: "meeting_summary"; content: MeetingSummary }
-    | { type: "task_list"; content: TaskList };
+    // | { type: "meeting_summary"; content: MeetingSummary }
+    // | { type: "task_list"; content: TaskList };

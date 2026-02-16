@@ -1,7 +1,7 @@
 // Services/OpenAIService.ts
-import { Action } from "../company/[company]/dashboard/pages/frontPage";
+import { Action } from "../(app)/[company]/dashboard/sections/frontPage";
 import { OpenAIResponse, DevOpsResponse, EmailDraft, MeetingSummary, TaskList, OpenAIContentType } from "../types/OpenAI";
-const pattoken = ""
+const pattoken = process.env.OPEN_AI_API_KEY!
 // Generic OpenAI call function
 const callOpenAI = async <T extends OpenAIContentType>(systemPrompt: string, userPrompt: string, mockData: T, temperature: number = 0.3): Promise<T> => {
 
@@ -10,7 +10,7 @@ const callOpenAI = async <T extends OpenAIContentType>(systemPrompt: string, use
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer `
+                'Authorization': `Bearer  `
             },
             body: JSON.stringify({
                 model: 'gpt-4o',
@@ -277,19 +277,22 @@ const extractInfoBasedOnAction = async (
             return { type: "email_draft", content };
         }
 
-        case "meeting_summary": {
-            const content = await OpenAIMeetingSummaryExtraction(noteContent);
-            return { type: "meeting_summary", content };
-        }
+        // case "meeting_summary": {
+        //     const content = await OpenAIMeetingSummaryExtraction(noteContent);
+        //     return { type: "meeting_summary", content };
+        // }
 
-        case "task_list": {
-            const content = await OpenAITaskListExtraction(noteContent);
-            return { type: "task_list", content };
-        }
+        // case "task_list": {
+        //     const content = await OpenAITaskListExtraction(noteContent);
+        //     return { type: "task_list", content };
+        // }
 
-        case "schedule_outlook_meeting":
-        case "attach_photo":
-            throw new Error(`Action type ${action.key} not yet implemented`);
+        case "schedule_outlook_meeting": {
+            const content = await OpenAIEmailDraftExtraction(noteContent);
+            return { type: "email_draft", content };
+        }
+        // case "attach_photo":
+        //     throw new Error(`Action type ${action.key} not yet implemented`);
 
         default: {
             const exhaustiveCheck: never = action.key;

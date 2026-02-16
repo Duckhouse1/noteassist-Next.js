@@ -1,0 +1,22 @@
+BEGIN TRY
+
+BEGIN TRAN;
+
+-- AlterTable
+ALTER TABLE [dbo].[Account] ALTER COLUMN [refresh_token] NVARCHAR(max) NULL;
+ALTER TABLE [dbo].[Account] ALTER COLUMN [access_token] NVARCHAR(max) NULL;
+ALTER TABLE [dbo].[Account] ALTER COLUMN [scope] NVARCHAR(max) NULL;
+ALTER TABLE [dbo].[Account] ALTER COLUMN [id_token] NVARCHAR(max) NULL;
+
+COMMIT TRAN;
+
+END TRY
+BEGIN CATCH
+
+IF @@TRANCOUNT > 0
+BEGIN
+    ROLLBACK TRAN;
+END;
+THROW
+
+END CATCH
