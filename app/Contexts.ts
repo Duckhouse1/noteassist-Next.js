@@ -1,7 +1,7 @@
 import { createContext } from "react";
 import { Assignee, OpenAIResponse } from "./types/OpenAI";
-import { DevOpsProjectsProps } from "./Services/DevOpsServices/Fetchservice";
-import { DevOpsArea, DevOpsIteration } from "./company/[company]/dashboard/components/IntegrationBodys/DevOps/DevOpsPreBody";
+// import { DevOpsProjectsProps } from "./Services/DevOpsServices/Fetchservice";
+// import { DevOpsArea, DevOpsIteration } from "./(app)/[company]/dashboard/components/IntegrationBodys/DevOps/DevOpsPreBody";
 
 
 

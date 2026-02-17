@@ -56,7 +56,7 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const { company: companySlug, text } = body as { company?: string; text?: string };
+  const { company: companySlug, text, title } = body as { company?: string; text?: string, title:string};
 
   if (!companySlug) {
     return NextResponse.json({ error: "Missing company" }, { status: 400 });
@@ -93,7 +93,7 @@ export async function POST(req: Request) {
       organizationId: company.id,
       userId,
       content: text,
-      title: null,
+      title: title,
     },
   });
 

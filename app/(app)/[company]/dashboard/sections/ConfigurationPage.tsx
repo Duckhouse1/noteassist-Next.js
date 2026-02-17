@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { IntegrationConnection } from "../dashboardClient";
 
 /* ───────────────── Types ───────────────── */
 export interface IntegrationOptions {
@@ -49,10 +50,10 @@ function toggleInArray<T>(arr: T[], item: T) {
   return arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item];
 }
 
-
+ 
 /* ───────────────── Component ───────────────── */
 
-export function ConfigurationPage({ value, onChange, onSave, company }: { value: ConfigState; onChange: (next: ConfigState) => void; onSave?: (config: ConfigState) => void; company: string }) {
+export function ConfigurationPage({ value, onChange, onSave, company, connections }: { value: ConfigState; onChange: (next: ConfigState) => void; onSave?: (config: ConfigState) => void; company: string, connections: IntegrationConnection[] }) {
   const [saved, setSaved] = useState(false);
   // const [activeConfigSetting, setActiveConfigSetting] = useState<IntegrationOptions>("Azure DevOps")
   const providers: IntegrationOptions[] = useMemo(
@@ -64,7 +65,16 @@ export function ConfigurationPage({ value, onChange, onSave, company }: { value:
     ],
     []
   );
-  
+  const connectedSet = useMemo(
+    () => new Set(connections.map((c) => c.provider)),
+    [connections]
+  );
+
+  const connectHref = (p: IntegrationOptions) => {
+    const returnTo = `/${company}/dashboard`;
+    return `${p.connectionString}?returnTo=${encodeURIComponent(returnTo)}&provider=${encodeURIComponent(p.title)}`;
+  };
+  const [connectedIntegrations, setConnectedIntegrations] = useState<IntegrationConnection[]>(connections)
   function setActionEnabled(key: ActionKey, enabled: boolean) {
     setSaved(false);
     onChange({
@@ -292,31 +302,54 @@ export function ConfigurationPage({ value, onChange, onSave, company }: { value:
               </div>
             </div>
           </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-medium text-slate-500">Connections</p>
+            <p className="mt-1 text-sm text-slate-600">
+              Connect your workspace to external tools.
+            </p>
 
-          <div className="rounded-2xl border border border-slate-300 bg-white p-5 text-sm text-slate-600">
-            <p>Possible connections:</p>
-            <div>
-              <p>Connected:</p>
-            </div>
-            <div>
-              <p>Not connected:</p>
-            </div>
-            <div className="flex gap-2 mt-2">
+            <div className="mt-4 flex flex-col gap-3">
               {providers.map((p) => {
-                const returnTo = `/${company}/dashboard`; // safer than raw string
-                const href = `${p.connectionString}?returnTo=${encodeURIComponent(returnTo)}&provider=${p.title}`;
+                const isConnected = connectedSet.has(p.title);
 
                 return (
-                  <Link
+                  <div
                     key={p.title}
-                    href={href}
-                    className="border border-gray-500 p-2 font-extralight bg-white text-black hover:bg-slate-200 transition"
+                    className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
                   >
-                    {p.title}
-                  </Link>
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={[
+                          "h-2.5 w-2.5 rounded-full",
+                          isConnected ? "bg-green-500" : "bg-slate-300",
+                        ].join(" ")}
+                      />
+
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-slate-800">
+                          {p.title}
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          {isConnected ? "Ready to use" : "Not connected"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {isConnected ? (
+                      <span className="text-xs font-medium text-green-600">
+                        Connected
+                      </span>
+                    ) : (
+                      <Link
+                        href={connectHref(p)}
+                        className="rounded-lg bg-blue-900 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-200"
+                      >
+                        Connect
+                      </Link>
+                    )}
+                  </div>
                 );
               })}
-
             </div>
           </div>
         </aside>

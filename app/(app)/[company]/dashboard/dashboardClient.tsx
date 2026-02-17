@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useCallback, useState, useEffect } from "react";
+import { useMemo, useCallback, useState, useEffect, useRef } from "react";
 import { FrontPage } from "./sections/frontPage";
 import ActionsPage from "./sections/ActionsPage";
 import { SettingsHoverMenu } from "./components/ConfigDropDown";
@@ -18,20 +18,70 @@ import OpenAIService from "@/app/Services/OpenAIService";
 import { OpenAIResponse } from "@/app/types/OpenAI";
 import MyNotesPage from "./sections/MyNotesPage";
 import Image from "next/image";
+import { Toast } from "@/app/Components/Toast";
 
 export type Pages = "frontpage" | "configurations" | "actions" | "MyNotes";
+
 export type DashboardMode = "personal" | "company"
+
+export interface IntegrationConnection {
+    displayName: string;
+    provider: string;
+}
+
 export default function DashboardClient({ company, mode }: { company: string, mode: DashboardMode }) {
     const [selectedActions, setSelectedActions] = useState<Action[]>([]);
     const [currentPage, setCurrentPage] = useState<Pages>("frontpage");
     const [notes, setNotes] = useState<string>("");
+    const [noteTitle, setNoteTitle] = useState("")
+    const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+
     const [config, setConfig] = useState<ConfigState>(DEFAULT_CONFIG);
-    const [IntegrationConnections, setIntegrationConnections] = useState<IntegrationOptionsTitle[]>([])
+    const [IntegrationConnections, setIntegrationConnections] = useState<IntegrationConnection[]>([])
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [actionAISolutions, setActionAISolutions] = useState<Map<string, OpenAIResponse>>(() => new Map());
     const isPersonalOrg = mode === "personal"
+    const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
+        setToast({ message, type });
 
+        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
 
+        toastTimeoutRef.current = setTimeout(() => {
+            setToast(null);
+        }, 2000);
+    };
+
+    const SaveNote = async () => {
+        if (noteTitle.trim() === "") {
+            showToast("Please enter a title before saving.", "error");
+            return;
+        }
+
+        try {
+            const response = await fetch("/api/notes", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ text: notes, company: company, title: noteTitle }),
+            });
+
+            if (!response.ok) {
+                showToast("Failed to save note. Please try again.", "error");
+                return;
+            }
+
+            showToast("Note saved successfully", "success");
+        } catch (error) {
+            console.log("Error during note saving: " + error);
+            showToast("Network error while saving note.", "error");
+        }
+    };
+
+    useEffect(() => {
+        return () => {
+            if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+        };
+    }, []);
     //Fetch user IntegrationConnections
     useEffect(() => {
         const GetIntegrationConnections = async () => {
@@ -41,7 +91,8 @@ export default function DashboardClient({ company, mode }: { company: string, mo
                     headers: { "Content-Type": "application/json" },
                 })
                 console.log("dette er Integration Connections:");
-                console.log(response.json());
+                // console.log(await response.json());
+                setIntegrationConnections(await response.json())
             } catch (error) {
                 console.log("Error fetching IntegrationConnections: " + error);
             }
@@ -103,11 +154,22 @@ export default function DashboardClient({ company, mode }: { company: string, mo
             return config.enabledActions[action.key];
         });
     }, [config]);
+    
 
+    useEffect(() => {
+        return () => {
+            if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+        };
+    }, []);
     return (
         <OpenAIActionSolutionsMapContext.Provider
             value={{ OpenAISolutionsMap: actionAISolutions, setOpenAISolutionsMap: setSolutionForKey, }}>
-            <main className="min-h-screen bg-slate-50">
+            <main className="h-screen bg-slate-50 overflow-hidden flex flex-col">
+                <Toast
+                    message={toast?.message ?? ""}
+                    type={toast?.type ?? "info"}
+                    onClose={() => setToast(null)}
+                />
                 {/* Top navigation stays white */}
                 <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white backdrop-blur">
                     <div className="mx-auto w-full flex items-center justify-between
@@ -122,11 +184,7 @@ export default function DashboardClient({ company, mode }: { company: string, mo
                                 className="cursor-pointer"
                                 onClick={() => setCurrentPage("frontpage")}
                             />
-                            {/* <div
-                                className="h-9 w-9 cursor-pointer rounded-xl bg-blue-900 shadow-sm"
-                                onClick={() => setCurrentPage("frontpage")}
-                            />
-                            */}
+
                             <div>
                                 <p className="text-sm font-semibold tracking-tight text-slate-900">
                                     ActionNotes
@@ -135,27 +193,40 @@ export default function DashboardClient({ company, mode }: { company: string, mo
                             </div>
 
                         </div>
-
-                        <div className="flex items-center gap-5">
-                            <div className="mr-8 flex gap-5">
-                                <button
+                        <div />
+                        <div />
+                        <div className="">
+                            <button
+                                className="
+                                    relative cursor-pointer
+                                    px-3 py-1 mr-5
+                                    text-gray-500
+                                    font-medium
+                                    text-m
+                                    transition-colors
+                                    hover:text-black
+                                    group
+                                "
+                                onClick={() => setCurrentPage("MyNotes")}>
+                                My notes
+                                <span
                                     className="
-                                        px-3 mr-5
-                                        border border-gray-300
-                                        text-gray-400
-                                        cursor-pointer
-                                        hover:bg-gray-100
-                                        hover:text-black
-                                        transition-colors
-                                        font-medium
-                                        text-sm
-                                    "
-                                    onClick={() => { setCurrentPage("MyNotes") }}
-                                >
-                                    My notes
-                                </button>
-                                <SettingsHoverMenu onConfigurations={() => setCurrentPage("configurations")} />
-                            </div>
+                                        absolute left-0 -bottom-1
+                                        h-[2px] w-full
+                                        bg-black
+                                        scale-x-0
+                                        origin-left
+                                        transition-transform duration-300 ease-out
+                                        group-hover:scale-x-100
+                                        "
+                                />
+                            </button>
+                        </div>
+                        <div className="flex items-center gap-5">
+                            {/* <div className="mr-8 flex gap-5"> */}
+
+                            <SettingsHoverMenu onConfigurations={() => setCurrentPage("configurations")} />
+                            {/* </div> */}
                             {!isPersonalOrg && (
                                 <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700">
                                     {company}
@@ -171,7 +242,7 @@ export default function DashboardClient({ company, mode }: { company: string, mo
                         {isLoading && <CorporateLoader size={220} className="absolute inset-0 z-50 m-auto" title="Mapping notes into actions" />}
                         {/* Pages */}
                         {!isLoading && currentPage === "frontpage" && (
-                            <div className="mx-auto w-full max-w-7xl 2xl:max-w-[1600px] bg-slate-50 px-4 sm:px-6 lg:px-8 py-0 overflow-auto">
+                            <div className="h-full overflow-auto pb-0">
                                 <FrontPage
                                     company={company}
                                     setCurrentPage={setCurrentPage}
@@ -180,6 +251,10 @@ export default function DashboardClient({ company, mode }: { company: string, mo
                                     actions={availableActions}   // ✅ pass filtered actions
                                     notes={notes}
                                     setNotes={setNotes}
+                                    NoteTitle={noteTitle}
+                                    setNoteTitle={setNoteTitle}
+                                    showToast={toast != null}
+                                    onSaveNote={SaveNote}
                                     onGoToActionsPageClick={() => {
                                         goToActionsPageClickHandler();
                                     }
@@ -189,17 +264,19 @@ export default function DashboardClient({ company, mode }: { company: string, mo
                         )}
 
                         {currentPage === "configurations" && (
-                            <ConfigurationPage
-                                value={config}
-                                onChange={setConfig}
-                                company={company}
-                                onSave={(cfg) => {
-                                    // later: persist per company
-                                    console.log("save config", cfg);
-                                }}
-                            />
+                            <div className="h-full overflow-auto">
+                                <ConfigurationPage
+                                    value={config}
+                                    connections={IntegrationConnections}
+                                    onChange={setConfig}
+                                    company={company}
+                                    onSave={(cfg) => {
+                                        // later: persist per company
+                                        console.log("save config", cfg);
+                                    }}
+                                />
+                            </div>
                         )}
-
                         {currentPage === "actions" &&
                             <ActionsPage selectedActions={selectedActions} onGoToFrontPage={() => {
                                 setCurrentPage("frontpage")
@@ -207,12 +284,9 @@ export default function DashboardClient({ company, mode }: { company: string, mo
                                 setNotes("")
                             }}
                             />}
-
-
                         {currentPage === "MyNotes" &&
                             <MyNotesPage />
                         }
-
                     </NotesContext.Provider>
                 </LoadingContext.Provider>
             </main>
