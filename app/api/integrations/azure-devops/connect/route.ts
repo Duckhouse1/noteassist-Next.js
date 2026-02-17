@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getToken } from "next-auth/jwt";
+import { IntegrationOptionsTitle } from "@/app/(app)/[company]/dashboard/sections/ConfigurationPage";
+import { ProviderOptions } from "../../microsoft-graph/connect/route";
 
 function base64url(input: Buffer) {
     return input
@@ -18,7 +20,20 @@ export async function GET(req: NextRequest) {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     const userId = token?.sub as string | undefined;
     const activeOrgId = token?.activeOrgId as string | undefined;
+    const url = new URL(req.url);
+      const providerParam = url.searchParams.get("provider");
+        console.log("Dette er provider: " + providerParam)
 
+    const ALLOWED_PROVIDERS = new Set<IntegrationOptionsTitle>([
+      "azure-devops","Outlook"
+    ]);
+    
+    if (!providerParam || !ALLOWED_PROVIDERS.has(providerParam as IntegrationOptionsTitle)) {
+      return NextResponse.json({ error: "Invalid provider" }, { status: 400 });
+    }
+    
+    const provider = providerParam as ProviderOptions;
+    console.log("Dette er provider: " + provider)
     if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -43,7 +58,6 @@ export async function GET(req: NextRequest) {
     const state = base64url(crypto.randomBytes(16));
 
     // Optional returnTo param (e.g. integrations page)
-    const url = new URL(req.url);
     const returnTo = url.searchParams.get("returnTo") || "/dashboard";
 
     // Store ephemeral oauth data in an httpOnly cookie
@@ -51,6 +65,7 @@ export async function GET(req: NextRequest) {
         state,
         codeVerifier,
         userId,
+        provider,
         organizationId: activeOrgId,
         returnTo,
         createdAt: Date.now(),

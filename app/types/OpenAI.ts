@@ -1,6 +1,6 @@
 // types/OpenAI.ts
 
-import { DevOpsArea, DevOpsIteration } from "../company/[company]/dashboard/components/IntegrationBodys/DevOps/DevOpsPreBody"
+import { DevOpsArea, DevOpsIteration } from "../(app)/[company]/dashboard/components/IntegrationBodys/DevOps/DevOpsPreBody"
 import { DevOpsProjectsProps } from "../Services/DevOpsServices/Fetchservice"
 
 // Specific response types

@@ -1,43 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { IntegrationOptionsTitle } from "@/app/(app)/[company]/dashboard/sections/ConfigurationPage";
+import { displayNameByProvider } from "../../microsoft-graph/callback/route";
 
 async function exchangeCodeForToken(params: {
-  tenant: string;
-  clientId: string;
-  clientSecret: string;
-  redirectUri: string;
-  code: string;
-  codeVerifier: string;
+    tenant: string;
+    clientId: string;
+    clientSecret: string;
+    redirectUri: string;
+    code: string;
+    codeVerifier: string;
 }) {
-  const tokenUrl = `https://login.microsoftonline.com/${encodeURIComponent(
-    params.tenant
-  )}/oauth2/v2.0/token`;
+    const tokenUrl = `https://login.microsoftonline.com/${encodeURIComponent(
+        params.tenant
+    )}/oauth2/v2.0/token`;
 
-  const body = new URLSearchParams();
-  body.set("client_id", params.clientId);
-  body.set("client_secret", params.clientSecret);
-  body.set("grant_type", "authorization_code");
-  body.set("code", params.code);
-  body.set("redirect_uri", params.redirectUri);
-  body.set("code_verifier", params.codeVerifier);
-  body.set("scope", "https://app.vssps.visualstudio.com/.default"); // ✅
+    const body = new URLSearchParams();
+    body.set("client_id", params.clientId);
+    body.set("client_secret", params.clientSecret);
+    body.set("grant_type", "authorization_code");
+    body.set("code", params.code);
+    body.set("redirect_uri", params.redirectUri);
+    body.set("code_verifier", params.codeVerifier);
+    body.set("scope", "https://app.vssps.visualstudio.com/.default"); // ✅
 
-  const resp = await fetch(tokenUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: body.toString(),
-  });
+    const resp = await fetch(tokenUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString(),
+    });
 
-  const json = await resp.json();
-  if (!resp.ok) throw new Error(json?.error_description || "Token exchange failed");
-  return json as {
-    access_token: string;
-    refresh_token?: string;
-    expires_in: number;
-    scope?: string;
-    id_token?: string;
-    token_type?: string;
-  };
+    const json = await resp.json();
+    if (!resp.ok) throw new Error(json?.error_description || "Token exchange failed");
+    return json as {
+        access_token: string;
+        refresh_token?: string;
+        expires_in: number;
+        scope?: string;
+        id_token?: string;
+        token_type?: string;
+    };
 }
 
 
@@ -59,6 +61,7 @@ export async function GET(req: NextRequest) {
         state: string;
         codeVerifier: string;
         userId: string;
+        provider: IntegrationOptionsTitle;
         organizationId: string;
         returnTo: string;
         createdAt: number;
@@ -83,8 +86,10 @@ export async function GET(req: NextRequest) {
     const clientId = process.env.AZURE_AD_CLIENT_ID!;
     const clientSecret = process.env.AZURE_AD_CLIENT_SECRET!;
     const redirectUri = `${process.env.NEXTAUTH_URL}/api/integrations/azure-devops/callback`;
+    const provider = payload.provider;
+    const providerDisplayName = displayNameByProvider[provider]
 
-   
+    console.log("")
 
     try {
         const tokenResponse = await exchangeCodeForToken({
@@ -104,7 +109,7 @@ export async function GET(req: NextRequest) {
                 organizationId_userId_provider: {
                     organizationId: payload.organizationId,
                     userId: payload.userId,
-                    provider: "Azure DevOps",
+                    provider: provider,
                 },
             },
             update: {
@@ -117,8 +122,8 @@ export async function GET(req: NextRequest) {
             create: {
                 organizationId: payload.organizationId,
                 userId: payload.userId,
-                provider: "azure-devops",
-                displayName: "Azure DevOps",
+                provider: provider,
+                displayName: providerDisplayName,
                 accessToken: tokenResponse.access_token,
                 refreshToken: tokenResponse.refresh_token ?? null,
                 expiresAt,

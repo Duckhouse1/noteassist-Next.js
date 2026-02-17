@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: NextRequest, { params }: { params: { projectId: string } }) {
-
-    const { projectId } = await params;
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ projectId: string }> }
+) {
+  const { projectId } = await context.params;
 
     //   const session = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
     //   const userId = session?.sub as string | undefined;

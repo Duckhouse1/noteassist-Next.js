@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   const providerParam = url.searchParams.get("provider");
 
 const ALLOWED_PROVIDERS = new Set<IntegrationOptionsTitle>([
-  "Azure DevOps","Outlook"
+  "azure-devops","Outlook"
 ]);
 
 if (!providerParam || !ALLOWED_PROVIDERS.has(providerParam as IntegrationOptionsTitle)) {

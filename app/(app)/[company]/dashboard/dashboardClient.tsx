@@ -91,7 +91,7 @@ export default function DashboardClient({ company, mode }: { company: string, mo
                     headers: { "Content-Type": "application/json" },
                 })
                 console.log("dette er Integration Connections:");
-                // console.log(await response.json());
+                console.log(await response.json());
                 setIntegrationConnections(await response.json())
             } catch (error) {
                 console.log("Error fetching IntegrationConnections: " + error);

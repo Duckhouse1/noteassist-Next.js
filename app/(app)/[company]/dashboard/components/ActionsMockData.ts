@@ -10,17 +10,17 @@ export const ActionsMockData: Action[] = [
         title: "Integrate with Azure DevOps",
         description:
             "Push notes, tasks, and decisions directly into Azure DevOps.",
-        integration: "Azure DevOps",
+        integration: "azure-devops",
         createText: "Create in Azure DevOps",
     },
-    {
-        key: "integrations",
-        title: "Integrate with ClickUp",
-        description:
-            "Create and update ClickUp tasks automatically from your notes.",
-        integration: "ClickUp",
-        createText: "Create in ClickUp",
-    },
+    // {
+    //     key: "integrations",
+    //     title: "Integrate with ClickUp",
+    //     description:
+    //         "Create and update ClickUp tasks automatically from your notes.",
+    //     integration: "ClickUp",
+    //     createText: "Create in ClickUp",
+    // },
     // {
     //     key: "integrations",
     //     title: "Integrate with SharePoint",
@@ -29,14 +29,14 @@ export const ActionsMockData: Action[] = [
     //     integration: "SharePoint",
     //     createText: "Create in SharePoint",
     // },
-    {
-        key: "integrations",
-        title: "Integrate with Jira",
-        description:
-            "Turn action items into Jira tickets in seconds.",
-        integration: "Jira",
-        createText: "Create in Jira",
-    },
+    // {
+    //     key: "integrations",
+    //     title: "Integrate with Jira",
+    //     description:
+    //         "Turn action items into Jira tickets in seconds.",
+    //     integration: "Jira",
+    //     createText: "Create in Jira",
+    // },
     // {
     //     key: "integrations",
     //     title: "Integrate with Notion",

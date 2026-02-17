@@ -10,7 +10,7 @@ export interface IntegrationOptions {
   connectionString: string;
 }
 export type IntegrationOptionsTitle =
-  | "Azure DevOps"
+  | "azure-devops"
   // | "ClickUp"
   // | "SharePoint"
   // | "Jira"
@@ -41,7 +41,7 @@ export const DEFAULT_CONFIG: ConfigState = {
     // task_list: true,
     // attach_photo: false,
   },
-  enabledProviders: ["Azure DevOps", "Outlook"],
+  enabledProviders: ["azure-devops", "Outlook"],
 };
 
 /* ───────────────── Utils ───────────────── */
@@ -58,7 +58,7 @@ export function ConfigurationPage({ value, onChange, onSave, company, connection
   // const [activeConfigSetting, setActiveConfigSetting] = useState<IntegrationOptions>("Azure DevOps")
   const providers: IntegrationOptions[] = useMemo(
     () => [
-      { title: "Azure DevOps", connectionString: "/api/integrations/azure-devops/connect" },
+      { title: "azure-devops", connectionString: "/api/integrations/azure-devops/connect" },
       // { title: "Jira", connectionString: "" },
       { title: "Outlook", connectionString: "/api/integrations/microsoft-graph/connect" },
       // { title: "ClickUp", connectionString: "/api/integrations/clickup/connect" },
@@ -72,7 +72,7 @@ export function ConfigurationPage({ value, onChange, onSave, company, connection
 
   const connectHref = (p: IntegrationOptions) => {
     const returnTo = `/${company}/dashboard`;
-    return `${p.connectionString}?returnTo=${encodeURIComponent(returnTo)}&provider=${encodeURIComponent(p.title)}`;
+    return `${p.connectionString}?returnTo=${encodeURIComponent(returnTo)}&provider=${p.title}`;
   };
   const [connectedIntegrations, setConnectedIntegrations] = useState<IntegrationConnection[]>(connections)
   function setActionEnabled(key: ActionKey, enabled: boolean) {

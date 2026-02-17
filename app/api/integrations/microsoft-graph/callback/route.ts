@@ -4,9 +4,9 @@ import { ProviderOptions } from "../connect/route";
 import { IntegrationOptionsTitle } from "@/app/(app)/[company]/dashboard/sections/ConfigurationPage";
 
 
-const displayNameByProvider: Record<IntegrationOptionsTitle, string> = {
+export const displayNameByProvider: Record<IntegrationOptionsTitle, string> = {
   Outlook: "Microsoft Outlook",
-  "Azure DevOps":"Azure DevOps"
+  "azure-devops":"azure-devops"
 };
 
 async function exchangeCodeForToken(params: {

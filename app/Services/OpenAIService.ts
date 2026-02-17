@@ -262,12 +262,12 @@ const extractInfoBasedOnAction = async (
 ): Promise<OpenAIResponse> => {
     switch (action.key) {
         case "integrations":
-            if (action.integration === "Azure DevOps") {
+            if (action.integration === "azure-devops") {
                 const content = await OpenAIDevOpsTaskExtraction(noteContent);
                 return { type: "devops_tasks", content };
-            } else if (action.integration === "Jira") {
-                const content = await OpenAIDevOpsTaskExtraction(noteContent);
-                return { type: "jira_tasks", content };
+            // } else if (action.integration === "Jira") {
+            //     const content = await OpenAIDevOpsTaskExtraction(noteContent);
+            //     return { type: "jira_tasks", content };
             } else {
                 throw new Error(`Unsupported integration: ${action.integration}`);
             }
