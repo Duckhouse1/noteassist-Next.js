@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ProviderOptions } from "../connect/route";
 import { IntegrationOptionsTitle } from "@/app/(app)/[company]/dashboard/sections/ConfigurationPage";
+import { encrypt } from "@/lib/cryptation";
 
 
 export const displayNameByProvider: Record<IntegrationOptionsTitle, string> = {
   Outlook: "Microsoft Outlook",
-  "azure-devops":"azure-devops"
+  "Azure-Devops":"Azure Devops",
+  SharePoint: "SharePoint"
 };
 
 async function exchangeCodeForToken(params: {
@@ -96,15 +98,23 @@ export async function GET(req: NextRequest) {
     const redirectUri = `${process.env.NEXTAUTH_URL}/api/integrations/microsoft-graph/callback`;
     const provider = payload.provider;
     const providerDisplayName = displayNameByProvider[provider]
-    const scope = [
-        "openid",
-        "profile",
-        "email",
-        "offline_access",
-        "User.Read",
-        "Mail.ReadWrite",
-        "Calendars.ReadWrite",
-    ].join(" ");
+    const scope = provider === "SharePoint" ?
+    [
+      "Sites.ReadWrite.All",
+      "offline_access",
+      "openid",
+      "profile",
+    ].join(" ")
+    :
+    [
+      "openid",
+      "profile",
+      "email",
+      "offline_access",
+      "User.Read",
+      "Mail.ReadWrite",
+      "Calendars.ReadWrite",
+    ].join(" ")
 
     try {
         const tokenResponse = await exchangeCodeForToken({
@@ -129,8 +139,8 @@ export async function GET(req: NextRequest) {
                 },
             },
             update: {
-                accessToken: tokenResponse.access_token,
-                refreshToken: tokenResponse.refresh_token ?? undefined,
+                accessToken: encrypt(tokenResponse.access_token),
+                refreshToken: tokenResponse.refresh_token ? encrypt(tokenResponse.refresh_token) : null,
                 expiresAt,
                 scope: tokenResponse.scope,
                 meta: JSON.stringify({ tenantId: tenant }),
@@ -140,8 +150,8 @@ export async function GET(req: NextRequest) {
                 userId: payload.userId,
                 provider: provider,
                 displayName: providerDisplayName,
-                accessToken: tokenResponse.access_token,
-                refreshToken: tokenResponse.refresh_token ?? null,
+                accessToken: encrypt(tokenResponse.access_token),
+                refreshToken: tokenResponse.refresh_token ? encrypt(tokenResponse.refresh_token) : null,
                 expiresAt,
                 scope: tokenResponse.scope,
                 meta: JSON.stringify({ tenantId: tenant }),

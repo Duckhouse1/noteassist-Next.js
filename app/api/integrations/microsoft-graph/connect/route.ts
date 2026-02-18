@@ -14,7 +14,7 @@ function base64url(input: Buffer) {
 async function sha256(verifier: string) {
   return crypto.createHash("sha256").update(verifier).digest();
 }
-export type ProviderOptions = "outlook" | "sharepoint" | "devops"
+export type ProviderOptions = "outlook" | "SharePoint"
 
 export async function GET(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
@@ -23,15 +23,15 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const providerParam = url.searchParams.get("provider");
 
-const ALLOWED_PROVIDERS = new Set<IntegrationOptionsTitle>([
-  "azure-devops","Outlook"
-]);
+  const ALLOWED_PROVIDERS = new Set<IntegrationOptionsTitle>([
+    "Azure-Devops", "Outlook", "SharePoint"
+  ]);
 
-if (!providerParam || !ALLOWED_PROVIDERS.has(providerParam as IntegrationOptionsTitle)) {
-  return NextResponse.json({ error: "Invalid provider" }, { status: 400 });
-}
+  if (!providerParam || !ALLOWED_PROVIDERS.has(providerParam as IntegrationOptionsTitle)) {
+    return NextResponse.json({ error: "Invalid provider" }, { status: 400 });
+  }
 
-const provider = providerParam as ProviderOptions;
+  const provider = providerParam as ProviderOptions;
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -48,7 +48,15 @@ const provider = providerParam as ProviderOptions;
   const redirectUri = `${process.env.NEXTAUTH_URL}/api/integrations/microsoft-graph/callback`;
 
   // ✅ Graph scopes (edit to your needs)
-   const scope = [
+  const scope = provider === "SharePoint" ?
+    [
+      "Sites.ReadWrite.All",
+      "offline_access",
+      "openid",
+      "profile",
+    ]
+    :
+    [
       "openid",
       "profile",
       "email",
@@ -57,7 +65,7 @@ const provider = providerParam as ProviderOptions;
       "Mail.ReadWrite",
       "Calendars.ReadWrite",
     ]
-  
+
   // PKCE
   const codeVerifier = base64url(crypto.randomBytes(32));
   const codeChallenge = base64url(await sha256(codeVerifier));
@@ -73,7 +81,7 @@ const provider = providerParam as ProviderOptions;
   const cookiePayload = JSON.stringify({
     state,
     codeVerifier,
-    provider, // ✅ add this
+    provider, 
     userId,
     organizationId: activeOrgId,
     returnTo,
@@ -101,7 +109,7 @@ const provider = providerParam as ProviderOptions;
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 10 * 60, // 10 min
+    maxAge: 10 * 60, 
   });
 
   return res;

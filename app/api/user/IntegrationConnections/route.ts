@@ -12,7 +12,7 @@ export async function GET() {
 
     const connections = await prisma.integrationConnection.findMany({
         where: {userId: session.user.id},
-        select: {displayName:true, provider:true}
+        select: {displayName:true, provider:true, id:true}
     })
 
     return NextResponse.json(connections)

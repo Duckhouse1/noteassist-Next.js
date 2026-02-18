@@ -10,7 +10,7 @@ export const ActionsMockData: Action[] = [
         title: "Integrate with Azure DevOps",
         description:
             "Push notes, tasks, and decisions directly into Azure DevOps.",
-        integration: "azure-devops",
+        integration: "Azure-Devops",
         createText: "Create in Azure DevOps",
     },
     // {

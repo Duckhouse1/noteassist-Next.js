@@ -12,7 +12,7 @@ export const IntegrationBody = ({ IntegrationOption }: { IntegrationOption: Inte
     // }, [OpenAISolutionsMap]);
 
     
-    if (IntegrationOption === "Azure DevOps") {
+    if (IntegrationOption === "Azure-Devops") {
         const response = OpenAISolutionsMap.get(IntegrationOption)
         if (response?.type === "devops_tasks") {
             return (

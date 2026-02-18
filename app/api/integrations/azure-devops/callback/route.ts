@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { IntegrationOptionsTitle } from "@/app/(app)/[company]/dashboard/sections/ConfigurationPage";
 import { displayNameByProvider } from "../../microsoft-graph/callback/route";
+import { encrypt } from "@/lib/cryptation";
 
 async function exchangeCodeForToken(params: {
     tenant: string;
@@ -22,15 +23,15 @@ async function exchangeCodeForToken(params: {
     body.set("code", params.code);
     body.set("redirect_uri", params.redirectUri);
     body.set("code_verifier", params.codeVerifier);
-    body.set("scope", "https://app.vssps.visualstudio.com/.default"); // ✅
-
+    body.set("scope", "https://app.vssps.visualstudio.com/.default offline_access");
     const resp = await fetch(tokenUrl, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: body.toString(),
     });
-
     const json = await resp.json();
+    console.log("Token response:", JSON.stringify(json, null, 2)); // ← add this
+    
     if (!resp.ok) throw new Error(json?.error_description || "Token exchange failed");
     return json as {
         access_token: string;
@@ -113,8 +114,8 @@ export async function GET(req: NextRequest) {
                 },
             },
             update: {
-                accessToken: tokenResponse.access_token,
-                refreshToken: tokenResponse.refresh_token ?? undefined,
+                accessToken: encrypt(tokenResponse.access_token),
+                refreshToken: tokenResponse.refresh_token ? encrypt(tokenResponse.refresh_token) : null,
                 expiresAt,
                 scope: tokenResponse.scope,
                 meta: JSON.stringify({ tenantId: tenant }),
@@ -124,8 +125,8 @@ export async function GET(req: NextRequest) {
                 userId: payload.userId,
                 provider: provider,
                 displayName: providerDisplayName,
-                accessToken: tokenResponse.access_token,
-                refreshToken: tokenResponse.refresh_token ?? null,
+                accessToken: encrypt(tokenResponse.access_token),
+                refreshToken: tokenResponse.refresh_token ? encrypt(tokenResponse.refresh_token) : null,
                 expiresAt,
                 scope: tokenResponse.scope,
                 meta: JSON.stringify({ tenantId: tenant }),

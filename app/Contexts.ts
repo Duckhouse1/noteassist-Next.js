@@ -1,10 +1,17 @@
 import { createContext } from "react";
 import { Assignee, OpenAIResponse } from "./types/OpenAI";
+import { OrganisationMode } from "./(app)/[company]/dashboard/dashboardClient";
 // import { DevOpsProjectsProps } from "./Services/DevOpsServices/Fetchservice";
 // import { DevOpsArea, DevOpsIteration } from "./(app)/[company]/dashboard/components/IntegrationBodys/DevOps/DevOpsPreBody";
 
+// GENERAL -------------------------------------------------
 
-
+interface OrganizationModeProp{
+    mode: OrganisationMode
+}
+export const OrganizationModeContext = createContext<OrganizationModeProp>({
+    mode: "personal"
+})
 
 //DEVOPS ----------------------------------------------------
 interface LoadingContextProps {

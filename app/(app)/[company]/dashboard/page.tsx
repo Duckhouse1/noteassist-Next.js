@@ -36,10 +36,10 @@ export default async function DashboardPage({ params }: PageProps) {
         userId: user.id,
       },
     },
-    select: { id: true },
+    select: { id: true, role: true },
   });
 
   if (!membership) redirect("/dashboard"); // user not allowed in this org
 
-  return <DashboardClient company={company} mode={org.slug.startsWith("user-") ? "personal" : "company"} />;
+  return <DashboardClient company={company} mode={org.slug.startsWith("user-") ? "personal" : "company"} memberShip={membership.role} />;
 }

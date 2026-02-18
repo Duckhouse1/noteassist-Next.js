@@ -17,13 +17,13 @@ export async function GET() {
     orderBy: { createdAt: "asc" },
   });
 
-  if (memberships.length === 0) {
-    return NextResponse.redirect(new URL("/onboarding/create-org", process.env.NEXTAUTH_URL));
-  }
+  // if (memberships.length === 0) {
+  //   return NextResponse.redirect(new URL("/onboarding/create-org", process.env.NEXTAUTH_URL));
+  // }
 
   if (memberships.length === 1) {
     const slug = memberships[0]!.organization.slug;
-    return NextResponse.redirect(new URL(`/company/${slug}/dashboard`, process.env.NEXTAUTH_URL));
+    return NextResponse.redirect(new URL(`/${slug}/dashboard`, process.env.NEXTAUTH_URL));
   }
 
   return NextResponse.redirect(new URL("/choose-org", process.env.NEXTAUTH_URL));
