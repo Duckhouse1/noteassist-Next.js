@@ -92,6 +92,8 @@ model IntegrationConnection {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  azureDevopsConfig  AzureDevopsConfig?
+
   @@unique([organizationId, userId, provider])
   @@index([organizationId, provider])
   @@index([userId, provider])
@@ -166,3 +168,14 @@ model VerificationToken {
 }
 
 
+model AzureDevopsConfig {
+  id                   String   @id @default(cuid())
+  connectionId         String   @unique
+
+  defaultOrganization  String   @default("")
+  defaultProject       String   @default("")
+  defaultWorkItemTypes String   @default("")
+  updatedAt            DateTime @updatedAt
+
+  connection           IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+}

@@ -1,8 +1,8 @@
-import { IntegrationConnection } from "@/app/(app)/[company]/dashboard/dashboardClient";
+import { IntegrationOptionsTitle } from "@/app/(app)/[company]/dashboard/sections/ConfigurationPage";
 
-async function GetAccessToken(connection: IntegrationConnection) {
+async function GetAccessToken(connection: IntegrationOptionsTitle) {
   try {
-    const response = await fetch(`/api/user/GetAccessTokenByProvider?provider=${encodeURIComponent(connection.provider)}`,
+    const response = await fetch(`/api/user/GetAccessTokenByProvider?provider=${encodeURIComponent(connection)}`,
       { method: "GET" }
     );
 
@@ -11,8 +11,8 @@ async function GetAccessToken(connection: IntegrationConnection) {
       throw new Error(`GetAccessToken failed: ${response.status} ${text}`);
     }
 
-    const data = await response.json(); // <-- await this
-    console.log("access token response:", data);
+    const data = await response.json(); 
+    // console.log("access token response:", data);
     return data;
   } catch (error) {
     console.log("Error fetching AccessToken:", error);

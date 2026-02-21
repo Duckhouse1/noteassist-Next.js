@@ -10,11 +10,12 @@ interface GeneralConfigProps {
     setActionEnabled: (key: ActionKey, enabled: boolean) => void;
     toggleProvider: (provider: IntegrationOptions) => void;
     providers: IntegrationOptions[];
+    connectedSet: Set<string>;  // add this
 }
 
 /* ───────────────── Component ───────────────── */
 
-export function GeneralConfig({ value, setActionEnabled, toggleProvider, providers }: GeneralConfigProps) {
+export function GeneralConfig({ value, setActionEnabled, toggleProvider, providers, connectedSet }: GeneralConfigProps) {
     return (
         <div className="space-y-5">
             {/* Integrations section */}
@@ -40,7 +41,7 @@ export function GeneralConfig({ value, setActionEnabled, toggleProvider, provide
                             value.enabledActions.integrations ? "opacity-100" : "opacity-40 pointer-events-none",
                         ].join(" ")}
                     >
-                        {providers.map((provider) => {
+                        {providers.filter(p => connectedSet.has(p.title)).map((provider) => {
                             const active = value.enabledProviders.includes(provider.title);
                             return (
                                 <button

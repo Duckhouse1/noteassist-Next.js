@@ -1,5 +1,12 @@
 import { redirect } from "next/navigation";
 
-export default function CompanyRoot({ params }: { params: { company: string } }) {
-  redirect(`/${params.company}/dashboard`);
+
+type PageProps = {
+  params: Promise<{ company: string }>;
+};
+
+
+export default async function CompanyRoot({ params }:PageProps ) {
+  const { company } = await params;
+  redirect(`/${company}/dashboard`);
 }

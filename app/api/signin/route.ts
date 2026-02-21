@@ -13,7 +13,7 @@ export async function GET() {
 
   const memberships = await prisma.membership.findMany({
     where: { userId },
-    select: { organization: { select: { slug: true } } },
+    select: { organization: { select: { slug: true, name:true } } },
     orderBy: { createdAt: "asc" },
   });
 
@@ -22,9 +22,10 @@ export async function GET() {
   // }
 
   if (memberships.length === 1) {
-    const slug = memberships[0]!.organization.slug;
-    return NextResponse.redirect(new URL(`/${slug}/dashboard`, process.env.NEXTAUTH_URL));
-  }
+  const slug = memberships[0]!.organization.slug;
+  return NextResponse.redirect(new URL(`/${slug}/dashboard`, process.env.NEXTAUTH_URL));
+}
+
 
   return NextResponse.redirect(new URL("/choose-org", process.env.NEXTAUTH_URL));
 }

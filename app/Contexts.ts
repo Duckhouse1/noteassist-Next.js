@@ -1,5 +1,5 @@
 import { createContext } from "react";
-import { Assignee, OpenAIResponse } from "./types/OpenAI";
+import { OpenAIResponse } from "./types/OpenAI";
 import { OrganisationMode } from "./(app)/[company]/dashboard/dashboardClient";
 // import { DevOpsProjectsProps } from "./Services/DevOpsServices/Fetchservice";
 // import { DevOpsArea, DevOpsIteration } from "./(app)/[company]/dashboard/components/IntegrationBodys/DevOps/DevOpsPreBody";
@@ -11,6 +11,16 @@ interface OrganizationModeProp{
 }
 export const OrganizationModeContext = createContext<OrganizationModeProp>({
     mode: "personal"
+})
+
+interface SaveRequirredProp{
+    requirred:boolean
+    setRequirred: (requirred: boolean) => void
+}
+
+export const SaveRequirredContext = createContext<SaveRequirredProp>({
+    requirred:false,
+    setRequirred: () => {}
 })
 
 //DEVOPS ----------------------------------------------------

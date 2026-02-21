@@ -20,5 +20,5 @@ export default async function DashboardEntry() {
   });
 
   if (!membership) redirect("/login");
-  redirect(`/${membership.organization.slug}/dashboard`);
+redirect(`/${membership.organization.slug}/dashboard`);
 }

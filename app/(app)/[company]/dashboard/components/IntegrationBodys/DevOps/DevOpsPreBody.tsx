@@ -6,7 +6,7 @@ import { CreateDevopsElementModal } from "./CreateFeatureModal";
 import { OpenAIActionSolutionsMapContext, ShowNotesBodyContext } from "@/app/Contexts";
 import { DevOpsTasksInfoPanel } from "./TasksInfoPanel";
 import { useSessionStorageState } from "@/app/Components/Hooks/useSessionStorage";
-import { AzureDevOpsMark } from "@/app/Icons/AzureDevops";
+import { AzureDevOpsMark } from "@/app/Components/Icons/AzureDevops";
 
 
 export interface DevOpsProjectsProps {
@@ -63,8 +63,9 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
     const saved = OpenAISolutionsMap.get(integrationKey);
     const savedFeatures =
         saved?.type === "devops_tasks" ? saved.content.features : [];
-
-    const projectId = selectedElement?.data.Project?.id ? selectedElement?.data.Project?.id : savedFeatures[0].Project?.id ?? selectedProject?.id ?? "";
+    console.log("saved features");
+    console.log(savedFeatures);
+    const projectId = selectedElement?.data.Project?.id ? selectedElement?.data.Project?.id : savedFeatures[0]?.Project?.id ?? selectedProject?.id ?? "";
 
     const { value: allAreas, setValue: setAllAreas } = useSessionStorageState<DevOpsArea | null>({
         key: `devops:areas:${projectId}`,

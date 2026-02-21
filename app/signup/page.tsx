@@ -40,7 +40,7 @@ export default function SignUpPage() {
       }
 
       // ✅ success
-      router.push("/signin"); // eller auto login (se trin 3)
+      router.push("/login"); // eller auto login (se trin 3)
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {

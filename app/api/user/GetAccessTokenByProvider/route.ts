@@ -13,7 +13,7 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const provider = searchParams.get("provider");
-
+  console.log("dette er provider: " + provider);
   if (!provider) {
     return NextResponse.json({ error: "Missing provider" }, { status: 400 });
   }

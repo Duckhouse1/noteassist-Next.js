@@ -1,4 +1,4 @@
-import AzureDevOpsLogo from "../../public/10261-icon-service-Azure-DevOps.svg"
+import AzureDevOpsLogo from "../../../public/10261-icon-service-Azure-DevOps.svg" 
 import Image from "next/image";
 
 export function AzureDevOpsMark() {

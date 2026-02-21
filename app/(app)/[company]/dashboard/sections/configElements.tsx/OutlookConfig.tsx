@@ -12,6 +12,8 @@ export type OutlookSettings = {
   autoCcAddress: string;
   meetingDurationDefault: 15 | 30 | 60 | 90;
   includeTeamsLink: boolean;
+  outLookDraft: boolean;
+  OutlookMeeting: boolean;
 };
 
 export const DEFAULT_OUTLOOK_SETTINGS: OutlookSettings = {
@@ -22,6 +24,8 @@ export const DEFAULT_OUTLOOK_SETTINGS: OutlookSettings = {
   autoCcAddress: "",
   meetingDurationDefault: 30,
   includeTeamsLink: true,
+  outLookDraft:true,
+  OutlookMeeting:true
 };
 
 interface OutlookConfigProps {
@@ -47,7 +51,29 @@ export function OutlookConfig({ connection, settings, onChange }: OutlookConfigP
           <p className="text-[10px] text-slate-500 mt-0.5">Connected · Outlook</p>
         </div>
       </div> */}
-
+      {/*Action secttion */}
+          <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                      <div className="px-6 py-5 border-b border-slate-100">
+                          <h2 className="text-sm font-semibold text-slate-900">Actions</h2>
+                          <p className="mt-0.5 text-xs text-slate-500">Enable the tools users can select from.</p>
+                      </div>
+      
+                      <div className="divide-y divide-slate-100">
+                          <Row
+                              title="Create Outlook draft email"
+                              desc="Generate a structured email draft from notes."
+                              checked={settings.outLookDraft}
+                              onChange={(v) => update({outLookDraft:v})}
+                          />
+                          <Row
+                              title="Schedule Outlook meeting"
+                              desc="Create a scheduled meeting in Outlook."
+                              checked={settings.OutlookMeeting}
+                              onChange={(v) => update({OutlookMeeting:v})}
+                          />
+                      </div>
+                  </section>
+               
       {/* Email settings */}
       <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-100">

@@ -29,8 +29,8 @@ export interface DevOpsSprintProps {
   id: string;
   name: string;
 }
-export interface DevOpsAllTeamMembersResponse{
-  count:number,
+export interface DevOpsAllTeamMembersResponse {
+  count: number,
   value: Assignee[]
 }
 
@@ -42,8 +42,15 @@ const pat = process.env.NEXT_PUBLIC_AZURE_DEVOPS_PAT!
 //Korrekte metoder:
 
 const FetchDevOpsProjects = async (): Promise<DevOpsProjectsProps[]> => {
-  const res = await fetch("/api/integrations/azure-devops/projects", { method: "GET" });
+  const res = await fetch("/api/integrations/azure-devops/projects", {
+    method: "GET",
+    headers: {
+      "content-type": "application/json"
+    }
+  });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  console.log("Dette er projekterne: ");
+  console.log(res);
   const data = (await res.json()) as DevOpsProjectsReturnProps;
   return data.value;
 };
@@ -163,17 +170,17 @@ const FetchAllTeams = async (): Promise<DevOpsTeamsProps[]> => {
   }
 };
 
-const FetchAllTeamMembersByProjectID = async (projectID: string) :Promise<Assignee[]>  => {
+const FetchAllTeamMembersByProjectID = async (projectID: string): Promise<Assignee[]> => {
   try {
     const encodedPat = btoa(`:${pat}`);
 
-    const response = await fetch("https://dev.azure.com/noteTester/_apis/projects/cc935a5f-5866-4557-aa8b-fa3d8c1e3469/teams/22dc1811-4bf9-4995-8d39-a8ff658a4539/members?api-version=7.2-preview.2",{
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Basic ${encodedPat}`,
-        },
-      }
+    const response = await fetch("https://dev.azure.com/noteTester/_apis/projects/cc935a5f-5866-4557-aa8b-fa3d8c1e3469/teams/22dc1811-4bf9-4995-8d39-a8ff658a4539/members?api-version=7.2-preview.2", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Basic ${encodedPat}`,
+      },
+    }
     );
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
@@ -189,17 +196,17 @@ const FetchAllTeamMembersByProjectID = async (projectID: string) :Promise<Assign
   }
 
 }
-const FetchAllAreasProjectID = async (projectID: string) :Promise<DevOpsArea |null>  => {
+const FetchAllAreasProjectID = async (projectID: string): Promise<DevOpsArea | null> => {
   try {
     const encodedPat = btoa(`:${pat}`);
 
-    const response = await fetch(`https://dev.azure.com/noteTester/${projectID}/_apis/wit/classificationnodes/areas?$depth=20&api-version=7.1-preview.2`,{
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Basic ${encodedPat}`,
-        },
-      }
+    const response = await fetch(`https://dev.azure.com/noteTester/${projectID}/_apis/wit/classificationnodes/areas?$depth=20&api-version=7.1-preview.2`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Basic ${encodedPat}`,
+      },
+    }
     );
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
@@ -215,17 +222,17 @@ const FetchAllAreasProjectID = async (projectID: string) :Promise<DevOpsArea |nu
   }
 
 }
-const FetchAllIterationsByProjectID = async (projectID: string) :Promise<DevOpsIteration[]>  => {
+const FetchAllIterationsByProjectID = async (projectID: string): Promise<DevOpsIteration[]> => {
   try {
     const encodedPat = btoa(`:${pat}`);
 
-    const response = await fetch(`https://dev.azure.com/noteTester/${projectID}/_apis/work/teamsettings/iterations?api-version=7.0`,{
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Basic ${encodedPat}`,
-        },
-      }
+    const response = await fetch(`https://dev.azure.com/noteTester/${projectID}/_apis/work/teamsettings/iterations?api-version=7.0`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Basic ${encodedPat}`,
+      },
+    }
     );
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);

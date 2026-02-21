@@ -1,15 +1,6 @@
-/*
-  Warnings:
-
-  - A unique constraint covering the columns `[userId,provider,providerAccountId]` on the table `Account` will be added. If there are existing duplicate values, this will fail.
-
-*/
 BEGIN TRY
 
 BEGIN TRAN;
-
--- DropIndex
-ALTER TABLE [dbo].[Account] DROP CONSTRAINT [Account_provider_providerAccountId_key];
 
 -- CreateTable
 CREATE TABLE [dbo].[Organization] (
@@ -63,6 +54,70 @@ CREATE TABLE [dbo].[IntegrationConnection] (
     CONSTRAINT [IntegrationConnection_organizationId_userId_provider_key] UNIQUE NONCLUSTERED ([organizationId],[userId],[provider])
 );
 
+-- CreateTable
+CREATE TABLE [dbo].[User] (
+    [id] NVARCHAR(1000) NOT NULL,
+    [name] NVARCHAR(1000),
+    [email] NVARCHAR(1000),
+    [passwordHash] NVARCHAR(max),
+    [emailVerified] DATETIME2,
+    [image] NVARCHAR(1000),
+    CONSTRAINT [User_pkey] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [User_email_key] UNIQUE NONCLUSTERED ([email])
+);
+
+-- CreateTable
+CREATE TABLE [dbo].[Account] (
+    [id] NVARCHAR(1000) NOT NULL,
+    [userId] NVARCHAR(1000) NOT NULL,
+    [type] NVARCHAR(1000) NOT NULL,
+    [provider] NVARCHAR(1000) NOT NULL,
+    [providerAccountId] NVARCHAR(1000) NOT NULL,
+    [refresh_token] NVARCHAR(max),
+    [access_token] NVARCHAR(max),
+    [id_token] NVARCHAR(max),
+    [expires_at] INT,
+    [token_type] NVARCHAR(1000),
+    [scope] NVARCHAR(max),
+    [session_state] NVARCHAR(1000),
+    [expires_in] INT,
+    [ext_expires_in] INT,
+    CONSTRAINT [Account_pkey] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [Account_provider_providerAccountId_key] UNIQUE NONCLUSTERED ([provider],[providerAccountId])
+);
+
+-- CreateTable
+CREATE TABLE [dbo].[Session] (
+    [id] NVARCHAR(1000) NOT NULL,
+    [sessionToken] NVARCHAR(1000) NOT NULL,
+    [userId] NVARCHAR(1000) NOT NULL,
+    [expires] DATETIME2 NOT NULL,
+    CONSTRAINT [Session_pkey] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [Session_sessionToken_key] UNIQUE NONCLUSTERED ([sessionToken])
+);
+
+-- CreateTable
+CREATE TABLE [dbo].[VerificationToken] (
+    [id] NVARCHAR(1000) NOT NULL,
+    [identifier] NVARCHAR(1000) NOT NULL,
+    [token] NVARCHAR(1000) NOT NULL,
+    [expires] DATETIME2 NOT NULL,
+    CONSTRAINT [VerificationToken_pkey] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [VerificationToken_token_key] UNIQUE NONCLUSTERED ([token]),
+    CONSTRAINT [VerificationToken_identifier_token_key] UNIQUE NONCLUSTERED ([identifier],[token])
+);
+
+-- CreateTable
+CREATE TABLE [dbo].[AzureDevopsConfig] (
+    [id] NVARCHAR(1000) NOT NULL,
+    [connectionId] NVARCHAR(1000) NOT NULL,
+    [defaultOrganization] NVARCHAR(1000) NOT NULL CONSTRAINT [AzureDevopsConfig_defaultOrganization_df] DEFAULT '',
+    [defaultProject] NVARCHAR(1000) NOT NULL CONSTRAINT [AzureDevopsConfig_defaultProject_df] DEFAULT '',
+    [updatedAt] DATETIME2 NOT NULL,
+    CONSTRAINT [AzureDevopsConfig_pkey] PRIMARY KEY CLUSTERED ([id]),
+    CONSTRAINT [AzureDevopsConfig_connectionId_key] UNIQUE NONCLUSTERED ([connectionId])
+);
+
 -- CreateIndex
 CREATE NONCLUSTERED INDEX [Membership_userId_idx] ON [dbo].[Membership]([userId]);
 
@@ -81,9 +136,6 @@ CREATE NONCLUSTERED INDEX [IntegrationConnection_userId_provider_idx] ON [dbo].[
 -- CreateIndex
 CREATE NONCLUSTERED INDEX [Account_userId_idx] ON [dbo].[Account]([userId]);
 
--- CreateIndex
-ALTER TABLE [dbo].[Account] ADD CONSTRAINT [Account_userId_provider_providerAccountId_key] UNIQUE NONCLUSTERED ([userId], [provider], [providerAccountId]);
-
 -- AddForeignKey
 ALTER TABLE [dbo].[Membership] ADD CONSTRAINT [Membership_organizationId_fkey] FOREIGN KEY ([organizationId]) REFERENCES [dbo].[Organization]([id]) ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -101,6 +153,15 @@ ALTER TABLE [dbo].[IntegrationConnection] ADD CONSTRAINT [IntegrationConnection_
 
 -- AddForeignKey
 ALTER TABLE [dbo].[IntegrationConnection] ADD CONSTRAINT [IntegrationConnection_userId_fkey] FOREIGN KEY ([userId]) REFERENCES [dbo].[User]([id]) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE [dbo].[Account] ADD CONSTRAINT [Account_userId_fkey] FOREIGN KEY ([userId]) REFERENCES [dbo].[User]([id]) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE [dbo].[Session] ADD CONSTRAINT [Session_userId_fkey] FOREIGN KEY ([userId]) REFERENCES [dbo].[User]([id]) ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE [dbo].[AzureDevopsConfig] ADD CONSTRAINT [AzureDevopsConfig_connectionId_fkey] FOREIGN KEY ([connectionId]) REFERENCES [dbo].[IntegrationConnection]([id]) ON DELETE CASCADE ON UPDATE CASCADE;
 
 COMMIT TRAN;
 

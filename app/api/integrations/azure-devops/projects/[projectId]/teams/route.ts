@@ -22,7 +22,7 @@ export async function GET(
 
     //   if (!conn?.accessToken) return NextResponse.json({ error: "Azure DevOps not connected" }, { status: 400 });
     const pat = process.env.NEXT_PUBLIC_AZURE_DEVOPS_PAT!
-
+  
     const resp = await fetch(
         `https://dev.azure.com/noteTester/_apis/projects/${projectId}/teams?api-version=7.2-preview.3`,
         { headers: { Authorization: `Bearer ${pat}` } }

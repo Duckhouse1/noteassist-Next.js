@@ -1,44 +1,54 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
-import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server";
+import { getAzureDevOpsAccessToken } from "@/lib/Integrations/DevOpsAccessToken";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
-export async function GET(req: NextRequest) {
-//   const session = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-//   const userId = session?.sub as string | undefined;
-//   const organizationId = session?.activeOrgId as string | undefined;
+export async function GET() {
+  const session = await getServerSession(authOptions);
+  const userId = session?.user.id
+  const organizationId = session?.activeOrgID
 
-//   if (!userId || !organizationId) {
-//     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-//   }
+  if (!userId || !organizationId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-//   const conn = await prisma.integrationConnection.findUnique({
-//     where: {
-//       organizationId_userId_provider: {
-//         organizationId,
-//         userId,
-//         provider: "azure-devops", // make sure this matches what you store
-//       },
-//     },
-//   });
+  const accessToken = await getAzureDevOpsAccessToken(userId, organizationId);
+  if (!accessToken) {
+    return NextResponse.json({ error: "Azure DevOps not connected" }, { status: 400 });
+  }
 
-//   if (!conn?.accessToken) {
-//     return NextResponse.json({ error: "Azure DevOps not connected" }, { status: 400 });
-//   }
-    const pat = process.env.NEXT_PUBLIC_AZURE_DEVOPS_PAT!
   const resp = await fetch(
     "https://dev.azure.com/noteTester/_apis/projects?api-version=7.2-preview.1",
     {
       headers: {
+        "Accept": "application/json",
         "Content-Type": "application/json",
-        Authorization: `Bearer ${pat}`, // ✅ use Bearer token
-      },
+        "Authorization": `Bearer ${accessToken}`,
+      }
     }
   );
-  console.log(resp);
-  const data = await resp.json();
+  const contentType = resp.headers.get("content-type") || "";
+  const text = await resp.text();
+
   if (!resp.ok) {
-    return NextResponse.json({ error: data }, { status: resp.status });
+    return NextResponse.json(
+      {
+        status: resp.status,
+        contentType,
+        bodyPreview: text.slice(0, 500),
+      },
+      { status: resp.status }
+    );
   }
 
+  if (!contentType.includes("application/json")) {
+    return NextResponse.json(
+      { error: "Expected JSON, got non-JSON response", contentType, bodyPreview: text.slice(0, 500) },
+      { status: 502 }
+    );
+  }
+
+  const data = JSON.parse(text);
   return NextResponse.json(data);
+
 }

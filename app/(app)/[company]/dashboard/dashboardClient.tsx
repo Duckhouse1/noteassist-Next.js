@@ -3,13 +3,7 @@
 import { useMemo, useCallback, useState, useEffect, useRef } from "react";
 import { FrontPage } from "./sections/frontPage";
 import ActionsPage from "./sections/ActionsPage";
-import { SettingsHoverMenu } from "./components/ConfigDropDown";
-import {
-    ConfigurationPage,
-    DEFAULT_CONFIG,
-    IntegrationOptionsTitle,
-    type ConfigState,
-} from "./sections/ConfigurationPage";
+import {ConfigurationPage, DEFAULT_CONFIG, type ConfigState,} from "./sections/ConfigurationPage";
 import { ActionsMockData } from "./components/ActionsMockData";
 import type { Action } from "./sections/frontPage";
 import { CorporateLoader } from "@/app/Components/LoadingIcon";
@@ -19,7 +13,7 @@ import { OpenAIResponse } from "@/app/types/OpenAI";
 import MyNotesPage from "./sections/MyNotesPage";
 import Image from "next/image";
 import { Toast } from "@/app/Components/Toast";
-import { AuthService } from "@/app/Services/AuthServices/AuthService";
+import { NavItem } from "@/app/Components/HeaderNavItem";
 
 export type Pages = "frontpage" | "configurations" | "actions" | "MyNotes" | "Organisation";
 export type OrganisationMode = "personal" | "company";
@@ -30,30 +24,7 @@ export interface IntegrationConnection {
     provider: string;
 }
 export type MemberShip = "owner" | "admin" | "member"
-const NavItem = ({
-    label,
-    active,
-    onClick,
-}: {
-    label: string;
-    active?: boolean;
-    onClick: () => void;
-}) => (
-    <button
-        onClick={onClick}
-        className={[
-            " cursor-pointer relative px-1 py-1 text-sm font-medium transition-colors",
-            active
-                ? "text-[#1E3A5F]"
-                : "text-slate-500 hover:text-slate-800",
-        ].join(" ")}
-    >
-        {label}
-        {active && (
-            <span className="absolute inset-x-0 -bottom-[17px] h-[2px] bg-[#1E3A5F] rounded-full" />
-        )}
-    </button>
-);
+
 
 export default function DashboardClient({ company, mode, memberShip}: { company: string; mode: OrganisationMode, memberShip : string }) {
     const [selectedActions, setSelectedActions] = useState<Action[]>([]);
@@ -187,18 +158,18 @@ export default function DashboardClient({ company, mode, memberShip}: { company:
                             <div className="flex items-center gap-3">
                                 <button
                                     onClick={() => setCurrentPage("frontpage")}
-                                    className="flex items-center gap-2.5 focus:outline-none"
+                                    className="flex items-center gap-1 focus:outline-none cursor-pointer"
                                 >
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1E3A5F]">
+                                    <div className="flex h-16 w-18 items-center justify-center rounded-lg">
                                         <Image
-                                            src="/actionNotes-Logo-alone.svg"
+                                            src="/NorbitLogo.png"
                                             alt="ActionNotes"
-                                            width={20}
-                                            height={20}
+                                            width={100}
+                                            height={100}
                                         />
                                     </div>
                                     <div className="leading-none">
-                                        <p className="text-sm font-bold tracking-tight text-slate-900">ActionNotes</p>
+                                        <p className="text-m font-bold tracking-tight text-slate-900 tracking-wide">Norbit</p>
                                         {!isPersonalOrg && (
                                             <p className="text-[10px] text-slate-400 font-medium">{company}</p>
                                         )}

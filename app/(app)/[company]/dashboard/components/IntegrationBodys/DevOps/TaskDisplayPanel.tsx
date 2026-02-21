@@ -4,7 +4,7 @@ import { SelectedElementProps, RemoveAction } from "./DevOpsPreBody";
 import { useEffect, useMemo, useRef } from "react";
 import { TypePill } from "./PillHelper";
 
-export type DevOpsTaskTypes = "Feature" | "PBI" | "Task";
+export type DevOpsTaskTypes = "Feature" | "PBI" | "Task" | "Bug" | "Epic";
 
 interface TasksDisplayPanelProps {
   features: DevOpsFeature[] | null;

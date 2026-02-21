@@ -11,12 +11,33 @@ export const IntegrationBody = ({ IntegrationOption }: { IntegrationOption: Inte
     //     console.log("OpenAISolutionsMap.get('Azure DevOps'):", OpenAISolutionsMap.get("Azure DevOps"));
     // }, [OpenAISolutionsMap]);
 
-    
+
     if (IntegrationOption === "Azure-Devops") {
         const response = OpenAISolutionsMap.get(IntegrationOption)
         if (response?.type === "devops_tasks") {
             return (
-                <DevOpsPreBody integrationKey={IntegrationOption} />
+                <>
+                    <DevOpsPreBody integrationKey={IntegrationOption} />
+
+                    <button
+                        className="ml-4 mt-3 p-2 px-7 cursor-pointer rounded-2xl bg-blue-950 text-white font-semibold"
+                        onClick={async () => {
+                            const data = response.content
+                            console.log("Her har vi vores data: ");
+                            console.log(data);
+                            // await fetch("/api/integrations/azure-devops/CreateWorkItems", {
+                            //     method: "POST",
+                            //     headers: { "Content-Type": "application/json" },
+                            //     body: JSON.stringify({
+                            //         // OpenAISolutionsMap
+                            //     })
+
+                            // })
+                        }} >
+
+                        Create in {IntegrationOption}
+                    </button>
+                </>
             )
         }
 

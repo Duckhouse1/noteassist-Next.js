@@ -1,7 +1,7 @@
 import { ShowNotesBodyContext } from "@/app/Contexts";
 import { EmailDraft } from "@/app/types/OpenAI";
 import { useContext } from "react";
-import { NotesBody } from "../NotesBody";
+import { NotesBody } from "../../NotesBody";
 
 export const OutLookDraft = ({ emailDraft }: { emailDraft: EmailDraft }) => {
     const {show} = useContext(ShowNotesBodyContext)

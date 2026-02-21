@@ -1,0 +1,19 @@
+BEGIN TRY
+
+BEGIN TRAN;
+
+-- AlterTable
+ALTER TABLE [dbo].[AzureDevopsConfig] ADD [defaultWorkItemTypes] NVARCHAR(1000) NOT NULL CONSTRAINT [AzureDevopsConfig_defaultWorkItemTypes_df] DEFAULT '';
+
+COMMIT TRAN;
+
+END TRY
+BEGIN CATCH
+
+IF @@TRANCOUNT > 0
+BEGIN
+    ROLLBACK TRAN;
+END;
+THROW
+
+END CATCH

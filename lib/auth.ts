@@ -20,7 +20,7 @@ async function ensurePersonalOrg(userId: string) {
 
   const org = await prisma.organization.create({
     data: {
-      name: "Personal workspace",
+      name: "MyWorkSpace",
       slug: `user-${userId}`,
       members: {
         create: {
@@ -155,7 +155,9 @@ export const authOptions: NextAuthOptions = {
       if (session.user && token.sub) {
         session.user.id = token.sub;
       }
-
+      if(token.activeOrgId){
+        session.activeOrgID = token.activeOrgId
+      }
 
       // ✅ Expose access token
       // (session).accessToken = token.accessToken as string | undefined;
