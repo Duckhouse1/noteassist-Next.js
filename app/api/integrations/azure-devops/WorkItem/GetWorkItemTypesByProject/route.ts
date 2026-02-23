@@ -34,16 +34,15 @@ export async function GET(req: NextRequest) {
     }
 
     // Find the Azure DevOps connection for this user + org
-    const org = await prisma.organization.findUnique({
-      where: { slug: organizationSlug },
-    });
-    if (!org) {
-      return NextResponse.json({ error: "Organization not found" }, { status: 404 });
-    }
+    // const org = await prisma.organization.findUnique({
+    //   where: { slug: organizationSlug },
+    // });
+    // if (!org) {
+    //   return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    // }
 
     const connection = await prisma.integrationConnection.findFirst({
       where: {
-        organizationId: org.id,
         userId: session.user.id,
         provider: "Azure-Devops",
       },

@@ -1,4 +1,3 @@
-import { IntegrationOptionsTitle } from "@/app/(app)/[company]/dashboard/sections/ConfigurationPage";
 import { decrypt, encrypt } from "../cryptation";
 import { prisma } from "../prisma";
 import { IntegrationConnection } from "@prisma/client";

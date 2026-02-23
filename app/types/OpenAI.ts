@@ -49,9 +49,19 @@ export interface DevOpsTask {
 }
 
 export interface DevOpsResponse {
-    features: DevOpsFeature[];
+    elements: DevOpsElement[];
 }
-
+export type DevOpsElement = {
+    id: string;
+    type: string;        // must match one of userConfig types exactly
+    title: string;
+    description: string;
+    children: DevOpsElement[];
+    Assignee?: Assignee
+    Project?: DevOpsProjectsProps;
+    Area?: DevOpsArea;
+    Iteration?: DevOpsIteration;
+};
 export interface EmailDraft {
     subject: string;
     body: string;
@@ -86,5 +96,5 @@ export type OpenAIResponse =
     | { type: "devops_tasks"; content: DevOpsResponse }
     | { type: "jira_tasks"; content: DevOpsResponse }
     | { type: "email_draft"; content: EmailDraft }
-    // | { type: "meeting_summary"; content: MeetingSummary }
-    // | { type: "task_list"; content: TaskList };
+// | { type: "meeting_summary"; content: MeetingSummary }
+// | { type: "task_list"; content: TaskList };

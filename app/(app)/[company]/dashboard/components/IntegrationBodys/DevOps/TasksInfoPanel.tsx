@@ -11,6 +11,7 @@ type DevOpsTasksInfoPanelProps = {
     AvailableProjects: DevOpsProjectsProps[]
     AvailableAssignees: Assignee[];
     AvailableIterations: DevOpsIteration[]
+    DefaultElements: { DefaultProjectName: string, defaultOrganizationName: string }
     onProjectChange: (newProjectID: string) => void;
     onDataChange: (patch: Partial<DevOpsFeature & DevOpsPBI & DevOpsTask>) => void;
     // refetchData: () => void;
@@ -28,7 +29,7 @@ function findAreaInTreeById(root: DevOpsArea | null, id: number): DevOpsArea | u
 //VIGTIGIGG
 
 //IMPLEMENTER SÅDAN AT HVIS INGEN AREAS, ASSIGNEES ELLER ITERATIONS, MEN SELECTED PROJECT ER DER; REFETCH DEM ALLE
-export function DevOpsTasksInfoPanel({ selectedElement, AvailableAreas, AvailableProjects, AvailableAssignees, AvailableIterations, onDataChange, onProjectChange }: DevOpsTasksInfoPanelProps) {
+export function DevOpsTasksInfoPanel({ DefaultElements, selectedElement, AvailableAreas, AvailableProjects, AvailableAssignees, AvailableIterations, onDataChange, onProjectChange }: DevOpsTasksInfoPanelProps) {
 
     const hasTask = Boolean(selectedElement.type && selectedElement.data.title);
     const titleInputRef = useRef<HTMLInputElement>(null);
@@ -103,7 +104,7 @@ export function DevOpsTasksInfoPanel({ selectedElement, AvailableAreas, Availabl
                                 <label className="text-xs font-medium text-slate-500">Project</label>
                                 <select
                                     disabled={!hasTask}
-                                    value={selectedElement.data.Project?.id ?? ""}
+                                    value={selectedElement.data.Project?.id ?? ""} // ✅ the real selected project
                                     onChange={(e) => onProjectChange(e.currentTarget.value)
                                     } className="
                                         w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900
@@ -125,7 +126,7 @@ export function DevOpsTasksInfoPanel({ selectedElement, AvailableAreas, Availabl
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-medium text-slate-500 flex gap-1">
-                                    Area {!selectedElement.data.Project ? <p className="text-xs text-slate-400"> - Select a project first to choose an area</p> : ""}
+                                    Area {!selectedElement.data.Project ? <p className="text-xs text-slate-400"> - Missing project</p> : ""}
                                 </label>
 
                                 <DevOpsAreaDropdown
@@ -150,8 +151,8 @@ export function DevOpsTasksInfoPanel({ selectedElement, AvailableAreas, Availabl
 
                             <div className="space-y-1.5">
                                 <label className="text-xs font-medium text-slate-500 flex gap-1">
-                                    Iteration {!selectedElement.data.Project ? <p className="text-xs text-slate-400"> - Select a project first to choose an Iteration</p> : ""}
-                                    </label>
+                                    Iteration {!selectedElement.data.Project ? <p className="text-xs text-slate-400"> - Missing project</p> : ""}
+                                </label>
                                 <select
                                     disabled={!hasTask || !selectedElement.data.Project}
                                     className="
@@ -260,7 +261,7 @@ export function DevOpsTasksInfoPanel({ selectedElement, AvailableAreas, Availabl
 
                         <div className="pt-2">
                             <textarea
-                                style={{resize:"none"}}
+                                style={{ resize: "none" }}
                                 disabled={!hasTask}
                                 value={selectedElement.data.description}
                                 onChange={(e) => {

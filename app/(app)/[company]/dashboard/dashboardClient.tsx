@@ -3,30 +3,44 @@
 import { useMemo, useCallback, useState, useEffect, useRef } from "react";
 import { FrontPage } from "./sections/frontPage";
 import ActionsPage from "./sections/ActionsPage";
-import {ConfigurationPage, DEFAULT_CONFIG, type ConfigState,} from "./sections/ConfigurationPage";
+import { ConfigurationPage, DEFAULT_CONFIG, type ConfigState, } from "./sections/ConfigurationPage";
 import { ActionsMockData } from "./components/ActionsMockData";
 import type { Action } from "./sections/frontPage";
 import { CorporateLoader } from "@/app/Components/LoadingIcon";
-import { LoadingContext, NotesContext, OpenAIActionSolutionsMapContext, OrganizationModeContext } from "@/app/Contexts";
+import { LoadingContext, NotesContext, OpenAIActionSolutionsMapContext, OrganizationModeContext, UserConfigContext } from "@/app/Contexts";
 import OpenAIService from "@/app/Services/OpenAIService";
 import { OpenAIResponse } from "@/app/types/OpenAI";
 import MyNotesPage from "./sections/MyNotesPage";
 import Image from "next/image";
 import { Toast } from "@/app/Components/Toast";
 import { NavItem } from "@/app/Components/HeaderNavItem";
+import { AzureDevopsSettings } from "./sections/configElements.tsx/AzureDevopsConfig";
+import { OutlookSettings } from "./sections/configElements.tsx/OutlookConfig";
+import { SharePointSettings } from "./sections/configElements.tsx/SharePointConfig";
+import { buildUserConfigString } from "@/lib/Integrations/LLMConfigBuilder";
+import { Header } from "./components/Header";
 
-export type Pages = "frontpage" | "configurations" | "actions" | "MyNotes" | "Organisation";
+export type Pages = "frontpage" | "configurations" | "actions" | "MyNotes" | "Organisations";
 export type OrganisationMode = "personal" | "company";
 
 export interface IntegrationConnection {
-    id:string;
+    id: string;
     displayName: string;
     provider: string;
 }
 export type MemberShip = "owner" | "admin" | "member"
 
+export type IntegrationConfigItem =
+    | { connectionId: string; provider: "azure-devops"; displayName: string; config: AzureDevopsSettings }
+    | { connectionId: string; provider: "outlook"; displayName: string; config: OutlookSettings }
+    | { connectionId: string; provider: "sharepoint"; displayName: string; config: SharePointSettings }
+    | { connectionId: string; provider: "jira"; displayName: string; config: Record<string, unknown> };
 
-export default function DashboardClient({ company, mode, memberShip}: { company: string; mode: OrganisationMode, memberShip : string }) {
+type UserConfigurationsResponse = {
+    configs: IntegrationConfigItem[]
+};
+
+export default function DashboardClient({ company, mode, memberShip }: { company: string; mode: OrganisationMode, memberShip: string }) {
     const [selectedActions, setSelectedActions] = useState<Action[]>([]);
     const [currentPage, setCurrentPage] = useState<Pages>("frontpage");
     const [notes, setNotes] = useState<string>("");
@@ -35,16 +49,97 @@ export default function DashboardClient({ company, mode, memberShip}: { company:
     const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
     const [member] = useState<MemberShip>(memberShip as MemberShip)
     const [config, setConfig] = useState<ConfigState>(DEFAULT_CONFIG);
+    const [userConfigs, setUserConfigs] = useState<IntegrationConfigItem[]>([]);
     const [IntegrationConnections, setIntegrationConnections] = useState<IntegrationConnection[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [actionAISolutions, setActionAISolutions] = useState<Map<string, OpenAIResponse>>(() => new Map());
     const isPersonalOrg = mode === "personal";
 
+    const LoadUserConfigurations = async () => {
+        try {
+            const res = await fetch("/api/user/Configurations");
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data: UserConfigurationsResponse = await res.json();
+            setUserConfigs(data.configs);
+            setConfig((prev) => applyFetchedConfigsToState(prev, data.configs));
+        } catch (error) {
+            console.log("Error fetching user Configurations: " + error);
+        }
+    }
 
+    function applyFetchedConfigsToState(
+        cfgState: ConfigState,
+        items: IntegrationConfigItem[]
+    ): ConfigState {
+        const next: ConfigState = {
+            ...cfgState,
+            azureDevops: { ...cfgState.azureDevops },
+            outlook: { ...cfgState.outlook },
+            sharePoint: { ...cfgState.sharePoint },
+        };
+
+        for (const item of items) {
+            if (!item.config) continue;
+
+            if (item.provider === "azure-devops") {
+                next.azureDevops[item.connectionId] = item.config;
+            } else if (item.provider === "outlook") {
+                // adjust to match your OutlookSettings type!
+                // (your current DTO differs; update server schema to match OutlookSettings)
+                next.outlook[item.connectionId] = item.config // replace with real mapping
+            } else if (item.provider === "sharepoint") {
+                next.sharePoint[item.connectionId] = item.config;
+            }
+        }
+
+        return next;
+    }
     const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
         setToast({ message, type });
         if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
         toastTimeoutRef.current = setTimeout(() => setToast(null), 2000);
+    };
+    const providerFromIntegration = (integration?: string) => {
+        // normalize your UI labels to provider keys used in userConfigs
+        if (!integration) return undefined;
+        switch (integration) {
+            case "Azure-Devops":
+                return "azure-devops";
+            case "jira":
+                return "jira";
+            case "ClickUp":
+                return "clickup";
+            case "outlook":
+                return "outlook";
+            default:
+                return integration.toLowerCase();
+        }
+    };
+    const onNewActionSelected = (action: Action) => {
+        const provider = providerFromIntegration(action.integration);
+        const item = userConfigs.find((x) => x.provider === provider);
+
+        // If no provider or no config item found, just toggle without UserConfig
+        const userConfigString = item ? buildUserConfigString(item) : undefined;
+
+        setSelectedActions((prev) => {
+            const match = (a: Action) => a.key === action.key && a.integration === action.integration;
+
+            const exists = prev.some(match);
+
+            if (exists) {
+                // toggle off
+                return prev.filter((a) => !match(a));
+            }
+
+            // toggle on + attach UserConfig
+            const actionWithConfig: Action = {
+                ...action,
+                UserConfig: userConfigString, // string | undefined is fine
+            };
+
+            return [...prev, actionWithConfig];
+        });
     };
 
     const SaveNote = async () => {
@@ -76,19 +171,22 @@ export default function DashboardClient({ company, mode, memberShip}: { company:
     }, []);
 
     useEffect(() => {
-        const GetIntegrationConnections = async () => {
+        const run = async () => {
             try {
-                const response = await fetch("/api/user/IntegrationConnections", {
-                    method: "GET",
-                    headers: { "Content-Type": "application/json" },
-                });
-                const data = await response.json();
-                setIntegrationConnections(data);
-            } catch (error) {
-                console.log("Error fetching IntegrationConnections: " + error);
+                const res = await fetch("/api/user/IntegrationConnections");
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                const connections: IntegrationConnection[] = await res.json();
+                setIntegrationConnections(connections);
+
+                // call with the freshly fetched data (not stale state)
+                await LoadUserConfigurations();
+            } catch (err) {
+                console.log("Error fetching IntegrationConnections:", err);
             }
         };
-        GetIntegrationConnections();
+
+        run();
     }, []);
 
     const setSolutionForKey = useCallback((key: string, value: OpenAIResponse) => {
@@ -150,139 +248,72 @@ export default function DashboardClient({ company, mode, memberShip}: { company:
                 />
 
                 {/* Header */}
-                <header className="sticky top-0 z-40 bg-white border-b border-slate-200/80">
-                    <div className=" w-full 2xl:max-w-[1550px] px-4 sm:px-6 lg:px-8 ml-4">
-                        <div className="flex h-14 justify-between">
-
-                            {/* Left: logo + brand */}
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={() => setCurrentPage("frontpage")}
-                                    className="flex items-center gap-1 focus:outline-none cursor-pointer"
-                                >
-                                    <div className="flex h-16 w-18 items-center justify-center rounded-lg">
-                                        <Image
-                                            src="/NorbitLogo.png"
-                                            alt="ActionNotes"
-                                            width={100}
-                                            height={100}
-                                        />
-                                    </div>
-                                    <div className="leading-none">
-                                        <p className="text-m font-bold tracking-tight text-slate-900 tracking-wide">Norbit</p>
-                                        {!isPersonalOrg && (
-                                            <p className="text-[10px] text-slate-400 font-medium">{company}</p>
-                                        )}
-                                    </div>
-                                </button>
-
-                                {/* Divider */}
-                                <div className="ml-3 h-5 w-px bg-slate-200" />
-
-                                {/* Nav links */}
-                                <nav className="flex items-center gap-5 ml-2">
-                                    <NavItem
-                                        label="Note"
-                                        active={currentPage === "frontpage"}
-                                        onClick={() => setCurrentPage("frontpage")}
-                                    />
-                                    <NavItem
-                                        label="My Notes"
-                                        active={currentPage === "MyNotes"}
-                                        onClick={() => setCurrentPage("MyNotes")}
-                                    />
-                                    {member == "owner" && (
-                                        <NavItem 
-                                        label="Organisation"
-                                        active={currentPage === "Organisation"}
-                                        onClick={() => setCurrentPage("Organisation")}
-                                        />
-                                    )}
-                                </nav>
-                            </div>
-
-                            {/* Right: settings + avatar */}
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={() => setCurrentPage("configurations")}
-                                    className={[
-                                        "cursor-pointer inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all focus:outline-none",
-                                        currentPage === "configurations"
-                                            ? "border-[#1E3A5F] bg-[#1E3A5F] text-white"
-                                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900",
-                                    ].join(" ")}
-                                >
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <circle cx="12" cy="12" r="3" />
-                                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                                    </svg>
-                                    Configuration
-                                </button>
-
-                                {/* Avatar */}
-                                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-slate-300 to-slate-400 ring-2 ring-white" />
-                            </div>
-                        </div>
-                    </div>
-                </header>
-
+                <Header
+                    company={company}
+                    currentPage={currentPage}
+                    setCurrentPage={setCurrentPage}
+                    isPersonalOrg={isPersonalOrg}
+                    member={member}
+                />
                 <LoadingContext.Provider value={{ isLoading, setIsLoading }}>
                     <OrganizationModeContext.Provider value={{ mode }}>
-                        <NotesContext.Provider value={{ notes, setNotes }}>
-                            {isLoading && (
-                                <CorporateLoader
-                                    size={220}
-                                    className="absolute inset-0 z-50 m-auto"
-                                    title="Mapping notes into actions"
-                                />
-                            )}
-
-                            {!isLoading && currentPage === "frontpage" && (
-                                <div className="h-full overflow-auto">
-                                    <FrontPage
-                                        company={company}
-                                        setCurrentPage={setCurrentPage}
-                                        selectedActions={selectedActions}
-                                        setSelectedActions={setSelectedActions}
-                                        actions={availableActions}
-                                        notes={notes}
-                                        setNotes={setNotes}
-                                        NoteTitle={noteTitle}
-                                        setNoteTitle={setNoteTitle}
-                                        showToast={toast != null}
-                                        onSaveNote={SaveNote}
-                                        onGoToActionsPageClick={goToActionsPageClickHandler}
+                        <UserConfigContext.Provider value={{ configs: userConfigs }}>
+                            <NotesContext.Provider value={{ notes, setNotes }}>
+                                {isLoading && (
+                                    <CorporateLoader
+                                        size={220}
+                                        className="absolute inset-0 z-50 m-auto"
+                                        title="Mapping notes into actions"
                                     />
-                                </div>
-                            )}
+                                )}
 
-                            {currentPage === "configurations" && (
-                                <div className="h-full overflow-auto">
-                                    <ConfigurationPage
-                                        value={config}
-                                        connections={IntegrationConnections}
-                                        onChange={setConfig}
-                                        company={company}
-                                        onSave={(cfg) => {
-                                            console.log("save config", cfg);
+                                {!isLoading && currentPage === "frontpage" && (
+                                    <div className="h-full overflow-auto">
+                                        <FrontPage
+                                            company={company}
+                                            setCurrentPage={setCurrentPage}
+                                            selectedActions={selectedActions}
+                                            setSelectedActions={(action) => onNewActionSelected(action)}
+                                            actions={availableActions}
+                                            notes={notes}
+                                            setNotes={setNotes}
+                                            NoteTitle={noteTitle}
+                                            setNoteTitle={setNoteTitle}
+                                            showToast={toast != null}
+                                            onSaveNote={SaveNote}
+                                            onGoToActionsPageClick={goToActionsPageClickHandler}
+                                        />
+                                    </div>
+                                )}
+
+                                {currentPage === "configurations" && (
+                                    <div className="h-full overflow-auto">
+                                        <ConfigurationPage
+                                            value={config}
+                                            connections={IntegrationConnections}
+                                            onChange={setConfig}
+                                            company={company}
+                                            onSave={(cfg) => {
+                                                console.log("save config", cfg);
+                                            }}
+                                        />
+                                    </div>
+                                )}
+
+                                {currentPage === "actions" && (
+                                    <ActionsPage
+                                        selectedActions={selectedActions}
+                                        onGoToFrontPage={() => {
+                                            setCurrentPage("frontpage");
+                                            setSelectedActions([]);
+                                            setNotes("");
                                         }}
                                     />
-                                </div>
-                            )}
+                                )}
 
-                            {currentPage === "actions" && (
-                                <ActionsPage
-                                    selectedActions={selectedActions}
-                                    onGoToFrontPage={() => {
-                                        setCurrentPage("frontpage");
-                                        setSelectedActions([]);
-                                        setNotes("");
-                                    }}
-                                />
-                            )}
-
-                            {currentPage === "MyNotes" && <MyNotesPage />}
-                        </NotesContext.Provider>
+                                {currentPage === "MyNotes" && <MyNotesPage />}
+                            </NotesContext.Provider>
+                        </UserConfigContext.Provider>
                     </OrganizationModeContext.Provider>
                 </LoadingContext.Provider>
             </main>

@@ -1,12 +1,14 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import FetchService from "@/app/Services/DevOpsServices/Fetchservice";
-import { Assignee, DevOpsFeature, DevOpsPBI, DevOpsTask } from "@/app/types/OpenAI";
+import { Assignee, DevOpsElement, DevOpsFeature, DevOpsPBI, DevOpsResponse, DevOpsTask } from "@/app/types/OpenAI";
 import { DevOpsTaskTypes, TasksDisplayPanel } from "./TaskDisplayPanel";
 import { CreateDevopsElementModal } from "./CreateFeatureModal";
-import { OpenAIActionSolutionsMapContext, ShowNotesBodyContext } from "@/app/Contexts";
+import { OpenAIActionSolutionsMapContext, ShowNotesBodyContext, UserConfigContext } from "@/app/Contexts";
 import { DevOpsTasksInfoPanel } from "./TasksInfoPanel";
 import { useSessionStorageState } from "@/app/Components/Hooks/useSessionStorage";
 import { AzureDevOpsMark } from "@/app/Components/Icons/AzureDevops";
+import { defaultConfig } from "next/dist/server/config-shared";
+import { WorkItemType } from "@/app/api/integrations/azure-devops/WorkItem/GetWorkItemTypesByProject/route";
 
 
 export interface DevOpsProjectsProps {
@@ -37,35 +39,36 @@ export interface DevOpsIterationResponds {
     value: DevOpsIteration[]
 }
 export interface SelectedElementProps {
-    type: DevOpsTaskTypes;
+    type: string;
     data: DevOpsFeature | DevOpsPBI | DevOpsTask;
     project?: DevOpsProjectsProps
 }
 
-export type RemoveAction =
-    | { type: "Feature"; featureId: string }
-    | { type: "PBIS"; featureId: string; pbiId: string }
-    | { type: "Tasks"; featureId: string; pbiId: string; taskId: string };
+export type RemoveAction = {
+    id: string;
+    type: string;
+};
 
 export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) => {
     const { OpenAISolutionsMap, setOpenAISolutionsMap } = useContext(OpenAIActionSolutionsMapContext);
-
-    const [projects, setProjects] = useState<DevOpsProjectsProps[]>([]);
     const [selectedProject, setSelectedProject] = useState<DevOpsProjectsProps | null>(null);
+    const { configs } = useContext(UserConfigContext)
+
 
     const [teams, setTeams] = useState<DevOpsTeamsProps[]>([]);
-    // const [selectedTeam, setSelectedTeam] = useState<DevOpsTeamsProps | null>(null);
-    // const [sprints, setSprints] = useState<DevOpsSprintProps[]>([]);
-    // const [selectedSprint, setSelectedSprint] = useState<DevOpsSprintProps | null>(null);
-    // ✅ Needed (you use setDisplayedElement)
+
     const [selectedElement, setSelectedElement] = useState<SelectedElementProps | null>(null);
     // Pull initial features from the map (if any)
     const saved = OpenAISolutionsMap.get(integrationKey);
-    const savedFeatures =
-        saved?.type === "devops_tasks" ? saved.content.features : [];
+    const savedElements =
+        saved?.type === "devops_tasks" ? saved.content.elements : [];
     console.log("saved features");
-    console.log(savedFeatures);
-    const projectId = selectedElement?.data.Project?.id ? selectedElement?.data.Project?.id : savedFeatures[0]?.Project?.id ?? selectedProject?.id ?? "";
+    console.log(savedElements);
+    const projectId = selectedElement?.data.Project?.id ? selectedElement?.data.Project?.id : savedElements[0]?.Project?.id ?? selectedProject?.id ?? "";
+    const { value: projects, setValue: setProjects } = useSessionStorageState<DevOpsProjectsProps[]>({
+        key: `devops:projects:${integrationKey}`,
+        initialValue: []
+    });
 
     const { value: allAreas, setValue: setAllAreas } = useSessionStorageState<DevOpsArea | null>({
         key: `devops:areas:${projectId}`,
@@ -81,11 +84,12 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
         key: `devops:assignees:${projectId}`,
         initialValue: [],
     });
-
-    // const { show } = useContext(ShowNotesBodyContext);
-    // Local editable state
-    const [features, setFeatures] = useState<DevOpsFeature[]>(() => savedFeatures);
-
+    //ONLY MAYBE vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+    const { value: elements, setValue: setElements } = useSessionStorageState<DevOpsElement[]>({
+        key: `devops:aielements:${integrationKey}`,
+        initialValue: savedElements
+    })
+    const [allWorkItemTypes, SetAllWorkItemTypes] = useState<WorkItemType[]>([])
     const [loadingProjects, setLoadingProjects] = useState(false);
     const [loadingTeams, setLoadingTeams] = useState(false);
     const [loadingSprints, setLoadingSprints] = useState(false);
@@ -93,12 +97,60 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
     const [error, setError] = useState<string | null>(null);
 
     const [showCreateElement, setShowCreateElementModal] = useState(false);
+    const defaultOrg = configs.find(c => c.provider === "azure-devops")?.config.defaultOrganization ?? "";
+    const defaultProjectId = (configs.find(c => c.provider === "azure-devops")?.config.defaultProject ?? "").trim();
+    const defaultProject = projects.find(p => p.id.trim().toLowerCase() === defaultProjectId.trim().toLowerCase()) ?? null;
 
+    console.log("Default project id: ");
+    console.log(defaultProjectId);
     const [creatingElement, setCreatingElement] = useState<{
         type: DevOpsTaskTypes;
         parentId: string | null;
     } | null>(null);
+    // const isMounted = useSessionStorageState({
+    //     key:`devops:ismounted`,
+    //     initialValue:false
+    // })
+    const didApplyDefaultsRef = useRef(false);
 
+
+    useEffect(() => {
+        if (didApplyDefaultsRef.current) return;
+        if (!defaultProject) return;
+
+        setElements(prev => applyDefaultProjectToTree(prev, { id: defaultProject.id, name: defaultProject.name }));
+
+        // ✅ if something is already selected and missing Project, patch that too
+        setSelectedElement(prev => {
+            if (!prev) return prev;
+            if (prev.data.Project?.id) return prev;
+            return {
+                ...prev,
+                data: { ...prev.data, Project: { id: defaultProject.id, name: defaultProject.name } },
+            };
+        });
+
+        didApplyDefaultsRef.current = true;
+    }, [defaultProject]);
+
+    const applyDefaultProjectToTree = (
+        nodes: DevOpsElement[],
+        defaultProject: { id: string; name: string } | null
+    ): DevOpsElement[] => {
+        if (!defaultProject) return nodes;
+
+        return nodes.map(n => {
+            const hasProject = Boolean(n.Project?.id);
+
+            const next: DevOpsElement = {
+                ...n,
+                Project: hasProject ? n.Project : { id: defaultProject.id, name: defaultProject.name },
+                children: applyDefaultProjectToTree(n.children ?? [], defaultProject),
+            };
+
+            return next;
+        });
+    };
     const onActionTaskClick = (el: SelectedElementProps) => {
         setSelectedElement(el);
     };
@@ -106,8 +158,8 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
     // ✅ If integrationKey changes (or you navigate between different integration keys),
     // re-hydrate local state from the map.
     useEffect(() => {
-        setFeatures(savedFeatures);
-        // Also clear any selected panel state when switching integration
+        didApplyDefaultsRef.current = false;  // ✅ allow defaults to apply again
+        setElements(savedElements);
         setSelectedElement(null);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [integrationKey]);
@@ -125,19 +177,57 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
 
         setOpenAISolutionsMap(integrationKey, {
             type: "devops_tasks",
-            content: { features },
+            content: { elements },
         });
-    }, [features, integrationKey, setOpenAISolutionsMap]);
+    }, [elements, integrationKey, setOpenAISolutionsMap]);
     // Fetch projects once
     useEffect(() => {
+        // if(isMounted)return
         let cancelled = false;
-
+        // if (projects) return
         (async () => {
             try {
                 setError(null);
                 setLoadingProjects(true);
+
                 const p = await FetchService.FetchProjects();
-                if (!cancelled) setProjects(p);
+                if (cancelled) return;
+
+                setProjects(p);
+
+                // ✅ Apply default project (ONLY if non-empty)
+                if (defaultProjectId !== "") {
+                    const found = p.find(pr => pr.id === defaultProjectId) ?? null;
+                    setSelectedProject(found);
+                    const res = await fetch(
+                        `/api/integrations/azure-devops/WorkItem/GetWorkItemTypesByProject?projectId=${defaultProjectId}&org=${defaultOrg}`
+                    );
+
+                    if (!res.ok) {
+                        throw new Error("Failed to fetch work item types");
+                    }
+
+                    const data = await res.json();
+
+                    console.log("All WIT:");
+                    console.log(data);
+
+                    SetAllWorkItemTypes(data.types);
+                    if (found) {
+                        // ✅ fetch project-scoped metadata
+                        const [areas, iters, members] = await Promise.all([
+                            FetchService.FetchAllAreasProjectID(found.id, defaultOrg),
+                            FetchService.FetchAllIterationsByProjectID(found.id, defaultOrg),
+                            FetchService.FetchAllTeamMembersByProjectID(found.id),
+                        ]);
+
+                        if (!cancelled) {
+                            if (areas != null) setAllAreas(areas);
+                            setIterations(iters ?? []);
+                            setAssignees(members ?? []);
+                        }
+                    }
+                }
             } catch {
                 if (!cancelled) setError("Could not load projects. Check your DevOps connection.");
             } finally {
@@ -148,7 +238,8 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [defaultProjectId]);
+
     // Fetch teams when project changes
     const FetchAllTeamsByProjectID = (ProjectID: string) => {
         if (!selectedProject) return;
@@ -171,8 +262,8 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
         (async () => {
             try {
                 const TeamMembers = await FetchService.FetchAllTeamMembersByProjectID(selectedProject.id)
-                console.log("Assignees:");
-                console.log(TeamMembers);
+                // console.log("Assignees:");
+                // console.log(TeamMembers);
                 setAssignees(TeamMembers)
             } catch (error) {
                 console.log("Erroe fetching Assignees: " + error);
@@ -181,7 +272,7 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
     }
     useEffect(() => {
         if (!selectedProject) return;
-
+        // if(isMounted)return
         let cancelled = false;
 
         (async () => {
@@ -211,220 +302,99 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
             cancelled = true;
         };
     }, [selectedProject]);
-    // Fetch sprints when team changes
-    // useEffect(() => {
-    //     if (!selectedTeam) return;
 
-    //     let cancelled = false;
 
-    //     (async () => {
-    //         try {
-    //             setError(null);
-    //             setLoadingSprints(true);
-    //             const s = await FetchService.FetchSprintsByTeam(selectedTeam.id);
-    //             if (!cancelled) setSprints(s);
-    //         } catch {
-    //             if (!cancelled) setError("Could not load sprints for that team.");
-    //         } finally {
-    //             if (!cancelled) setLoadingSprints(false);
-    //         }
-    //     })();
-
-    //     return () => {
-    //         cancelled = true;
-    //     };
-    // }, [selectedTeam]);
-
-    const onTaskRemove = (action: RemoveAction) => {
-        setFeatures((prev) => {
-            switch (action.type) {
-                case "Feature":
-                    if (action.featureId === selectedElement?.data.id) {
-                        setSelectedElement(null)
-                    }
-                    return prev.filter((f) => f.id !== action.featureId);
-
-                case "PBIS":
-                    if (action.pbiId === selectedElement?.data.id) {
-                        setSelectedElement(null)
-                    }
-                    return prev.map((f) =>
-                        f.id !== action.featureId ? f : { ...f, pbis: f.pbis.filter((p) => p.id !== action.pbiId) }
-                    );
-
-                case "Tasks":
-                    if (action.taskId === selectedElement?.data.id) {
-                        setSelectedElement(null)
-                    }
-                    return prev.map((f) =>
-                        f.id !== action.featureId
-                            ? f
-                            : {
-                                ...f,
-                                pbis: f.pbis.map((p) =>
-                                    p.id !== action.pbiId ? p : { ...p, tasks: p.tasks.filter((t) => t.id !== action.taskId) }
-                                ),
-                            }
-                    );
+    const removeNode = (
+        nodes: DevOpsElement[],
+        idToRemove: string
+    ): DevOpsElement[] => {
+        return nodes
+            .filter(node => node.id !== idToRemove)
+            .map(node => ({
+                ...node,
+                children: removeNode(node.children ?? [], idToRemove)
+            }));
+    };
+    const handleRemove = (action: RemoveAction) => {
+        setElements(prev =>
+            prev ? removeNode(prev, action.id) : prev
+        );
+    };
+    const addChildById = (
+        nodes: DevOpsElement[],
+        parentId: string,
+        child: DevOpsElement
+    ): DevOpsElement[] => {
+        return nodes.map(n => {
+            if (n.id === parentId) {
+                return { ...n, children: [...(n.children ?? []), child] };
             }
+            return { ...n, children: addChildById(n.children ?? [], parentId, child) };
         });
     };
+    const onCreateNewElementClickHandler = (type: string, parentId: string | null) => {
+        const newNode: DevOpsElement = {
+            id: crypto.randomUUID(),
+            type,
+            title: `New ${type}`,
+            description: "",
+            children: [],
+        };
 
-    const onCreateNewElementClickHandler = (type: DevOpsTaskTypes, parentId: string | null) => {
-        setCreatingElement({ type, parentId });
-        if (type === "Feature") {
-            const newFeature: DevOpsFeature = {
-                id: crypto.randomUUID(),
-                title: "New Feature",
-                description: "",
-                pbis: []
+        setElements(prev => {
+            if (!parentId) {
+                return [...prev, newNode];
             }
-            features.push(newFeature)
-            setSelectedElement({ type: "Feature", data: newFeature })
-        } else if (type === "PBI") {
-            const newPBI: DevOpsPBI = {
-                id: crypto.randomUUID(),
-                title: "New PBI",
-                description: "",
-                tasks: []
-            }
-            features.find((f) => f.id === parentId)?.pbis.push(newPBI)
-            setSelectedElement({ type: "PBI", data: newPBI })
-        } else {
-            const newTask: DevOpsTask = {
-                id: crypto.randomUUID(),
-                title: "New Task",
-                description: "",
-            }
-            features.find((f) => f.pbis.find((pbi) => pbi.id === parentId)?.tasks.push(newTask))
-            setSelectedElement({ type: "Task", data: newTask })
+            return addChildById(prev, parentId, newNode);
+        });
 
-        }
+        setSelectedElement({ type, data: newNode });
     };
 
-    const CreateNewDevOpsElement = (title: string, description: string) => {
-        setFeatures((prev) => {
-            // Create Feature
-            if (creatingElement?.parentId === null) {
-                return [
-                    ...prev,
-                    {
-                        id: crypto.randomUUID(),
-                        title,
-                        description,
-                        pbis: [],
-                    },
-                ];
-            }
-            // Create PBI under Feature
-            if (creatingElement?.type === "PBI") {
-                const newPBI: DevOpsPBI = {
-                    id: crypto.randomUUID(),
-                    title,
-                    description,
-                    tasks: [],
-                };
-                return prev.map((feature) =>
-                    feature.id === creatingElement.parentId
-                        ? { ...feature, pbis: [...feature.pbis, newPBI] }
-                        : feature
-                );
-            }
-            // Create Task under PBI (parentId = PBI id)
-            if (creatingElement?.type === "Task") {
-                const newTask: DevOpsTask = {
-                    id: crypto.randomUUID(),
-                    title,
-                    description,
-                };
-                return prev.map((feature) => ({
-                    ...feature,
-                    pbis: feature.pbis.map((pbi) =>
-                        pbi.id === creatingElement.parentId
-                            ? { ...pbi, tasks: [...pbi.tasks, newTask] }
-                            : pbi
-                    ),
-                }));
-            }
-            return prev;
+    const updateNodeById = (
+        nodes: DevOpsElement[],
+        id: string,
+        patch: Partial<DevOpsElement>
+    ): DevOpsElement[] => {
+        return nodes.map(n => {
+            if (n.id === id) return { ...n, ...patch };
+            return { ...n, children: updateNodeById(n.children ?? [], id, patch) };
         });
     };
-    const updateElementById = (patch: Partial<DevOpsFeature & DevOpsPBI & DevOpsTask>) => {
-        // keep right panel in sync
-        if (selectedElement == null) return
+    const updateById = (id: string, patch: Partial<DevOpsElement>) => {
         setSelectedElement(prev => {
-            if (!prev || prev.data.id !== selectedElement.data.id) return prev;
+            if (!prev || prev.data.id !== id) return prev;
             return { ...prev, data: { ...prev.data, ...patch } };
         });
-        // persist into the features tree
-        setFeatures(prev => {
-            const id = selectedElement.data.id;
-            if (selectedElement.type === "Feature") {
-                return prev.map(f => (f.id === id ? { ...f, ...patch } : f));
-            }
-            if (selectedElement.type === "PBI") {
-                return prev.map(f => ({
-                    ...f,
-                    pbis: f.pbis.map(p => (p.id === id ? { ...p, ...patch } : p)),
-                }));
-            }
-            // Task
-            return prev.map(f => ({
-                ...f,
-                pbis: f.pbis.map(p => ({
-                    ...p,
-                    tasks: p.tasks.map(t => (t.id === id ? { ...t, ...patch } : t)),
-                })),
-            }));
-        });
+
+        setElements(prev => updateNodeById(prev, id, patch));
     };
     useEffect(() => {
         console.log("Selected element:");
         console.log(selectedElement);
     }, [selectedElement])
 
-    //Spørgsmål til ørbæk;
-    // - Bruger i nogensinde epic som work item type?
-    // - 
 
     const onProjectsChange = async (selectedProjectID: string) => {
-        console.log("selected project id:" + selectedProjectID);
-        const selectedProject: DevOpsProjectsProps | null = projects.find((project) => project.id === selectedProjectID) ?? null
-        setSelectedProject(selectedProject)
-        updateElementById({ Project: { name: selectedProject!.name, id: selectedProject!.id } })
-        const FetchedAreas = await FetchService.FetchAllAreasProjectID(selectedProjectID)
-        if (FetchedAreas != null) {
-            setAllAreas(FetchedAreas)
+        const picked = projects.find(p => p.id === selectedProjectID) ?? null;
+        setSelectedProject(picked);
+
+        // ✅ Update the selected element’s Project field
+        if (picked && selectedElement) {
+            updateById(selectedElement.data.id, {
+                Project: { id: picked.id, name: picked.name },
+            });
         }
-        const FetchedIterations = await FetchService.FetchAllIterationsByProjectID(selectedProjectID)
-        setIterations(FetchedIterations)
-    }
 
-    //This is so that areas, iterations and Assignees are persisten (gider ikke til at have dem i parent)
-    // useEffect(() => {
-    //     console.log("persist areas, iterations and assignees useEffect");
-    //     const projectId = selectedElement?.data?.Project?.id;
-    //     if (!projectId) return;
+        // ✅ Fetch metadata for dropdowns
+        const [FetchedAreas, FetchedIterations] = await Promise.all([
+            FetchService.FetchAllAreasProjectID(selectedProjectID, defaultOrg),
+            FetchService.FetchAllIterationsByProjectID(selectedProjectID, defaultOrg),
+        ]);
 
-    //     // Ensure selectedProject is set so the "teams effect" runs (assignees)
-    //     const p = projects.find(pr => pr.id === projectId) ?? null;
-    //     setSelectedProject(p);
-
-    //     // Fetch areas + iterations directly (since these are project-scoped)
-    //     (async () => {
-    //         try {
-    //             console.log("fethcing it all");
-    //             const [FetchedAreas, FetchedIterations] = await Promise.all([
-    //                 FetchService.FetchAllAreasProjectID(projectId),
-    //                 FetchService.FetchAllIterationsByProjectID(projectId),
-    //             ]);
-    //             setAllAreas(FetchedAreas);
-    //             setIterations(FetchedIterations);
-    //         } catch (e) {
-    //             console.log("Error rehydrating project-scoped data:", e);
-    //         }
-    //     })();
-    // }, [selectedElement?.data?.Project?.id, projects]);'
+        if (FetchedAreas != null) setAllAreas(FetchedAreas);
+        setIterations(FetchedIterations ?? []);
+    };
 
     //This is for when the user clicks next or clicks the circles in the header to navigate between the actions
     //Then the meta data should refetch since this components unmounts
@@ -433,8 +403,8 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
 
         try {
             const [FetchedAreas, FetchedIterations, FetchedAssignees] = await Promise.all([
-                FetchService.FetchAllAreasProjectID(projectId),
-                FetchService.FetchAllIterationsByProjectID(projectId),
+                FetchService.FetchAllAreasProjectID(projectId, defaultOrg),
+                FetchService.FetchAllIterationsByProjectID(projectId, defaultOrg),
                 FetchService.FetchAllTeamMembersByProjectID(projectId),
             ]);
 
@@ -448,24 +418,16 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
 
     return (
         <div className="w-full flex flex-row gap-2 items-stretch h-[64vh] min-h-0">
-            {/* {showCreateElement && creatingElement && (
-                <CreateDevopsElementModal
-                    type={creatingElement.type}
-                    onClose={() => setShowCreateElementModal(false)}
-                    open={showCreateElement}
-                    onSubmit={(data: { title: string; description: string }) =>
-                        CreateNewDevOpsElement(data.title, data.description)
-                    }
-                />
-            )} */}
-            <div className="flex-3 min-w-0 min-h-0 max-h-[calc(100vh-160px)]">
+            <div className="flex-3 min-w-0 max-h-[calc(100vh-160px)]">
                 <TasksDisplayPanel
-                    features={features}
+                    elements={elements}
                     onClick={onActionTaskClick}
-                    onRemove={onTaskRemove}
+                    onRemove={handleRemove}
                     onCreateNewElementClick={onCreateNewElementClickHandler}
                     selectedElement={selectedElement}
+                    possibleWIT={allWorkItemTypes}
                 />
+
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white shadow-sm flex-[6] flex flex-col min-h-0">
@@ -483,14 +445,14 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
                     <button
                         title="Fetches latest data from your Azure DevOps"
                         className="
-      inline-flex items-center gap-1.5
-      rounded-lg border border-slate-200
-      px-2.5 py-1.5
-      text-xs font-medium text-slate-600
-      hover:bg-slate-50 hover:text-slate-900
-      active:bg-slate-100
-      transition
-    "
+                            inline-flex items-center gap-1.5
+                            rounded-lg border border-slate-200
+                            px-2.5 py-1.5
+                            text-xs font-medium text-slate-600
+                            hover:bg-slate-50 hover:text-slate-900
+                            active:bg-slate-100
+                            transition
+                            "
                     >
                         Refresh DevOps data
                     </button>
@@ -507,12 +469,13 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
                     {selectedElement ? (
                         <div className="mt-0 flex-1 min-h-0">
                             <DevOpsTasksInfoPanel
+                                DefaultElements={{ DefaultProjectName: defaultProjectId ?? "", defaultOrganizationName: defaultOrg ?? "" }}
                                 selectedElement={selectedElement}
                                 AvailableAreas={allAreas}
                                 AvailableAssignees={assignees}
                                 AvailableProjects={projects}
                                 AvailableIterations={iterations}
-                                onDataChange={updateElementById}
+                                onDataChange={(patch) => updateById(selectedElement.data.id, patch)}
                                 onProjectChange={onProjectsChange}
                             // refetchData={() => RefetchData()}
                             />

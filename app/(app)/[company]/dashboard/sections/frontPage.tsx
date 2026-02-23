@@ -2,13 +2,14 @@
 
 import { Dispatch, useContext, useEffect, useRef, useState } from "react";
 import { ActionKey, IntegrationOptions, IntegrationOptionsTitle } from "./ConfigurationPage";
-import { LoadingContext, OrganizationModeContext } from "@/app/Contexts";
+import { LoadingContext, OrganizationModeContext, UserConfigContext } from "@/app/Contexts";
 import { Note } from "./MyNotesPage";
+import { IntegrationConfigItem } from "../dashboardClient";
 
 interface FrontPageProps {
     company: string;
     setCurrentPage: (page: "frontpage" | "configurations" | "actions") => void;
-    setSelectedActions: Dispatch<React.SetStateAction<Action[]>>;
+    setSelectedActions: (newAction: Action) => void;
     selectedActions: Action[];
     actions: Action[];
     notes: string;
@@ -20,13 +21,13 @@ interface FrontPageProps {
     onGoToActionsPageClick: () => void;
 }
 
-export type IntegrationTypes = "azure_devops" | "ClickUp" | "jira" | "outlook";
 export interface Action {
     key: ActionKey;
     title: string;
     description: string;
     createText: string;
     integration?: IntegrationOptionsTitle;
+    UserConfig?: string
 }
 
 const PenIcon = () => (
@@ -55,44 +56,32 @@ const ArrowRight = () => (
     </svg>
 );
 
-export const FrontPage: React.FC<FrontPageProps> = ({
-    onSaveNote,
-    company,
-    setCurrentPage,
-    setSelectedActions,
-    selectedActions,
-    actions,
-    notes,
-    setNotes,
-    onGoToActionsPageClick,
-    NoteTitle,
-    setNoteTitle,
-    showToast,
-}) => {
+export const FrontPage: React.FC<FrontPageProps> = ({ onSaveNote, company, setCurrentPage, setSelectedActions, selectedActions, actions, notes,
+    setNotes, onGoToActionsPageClick, NoteTitle, setNoteTitle, }) => {
+
     const { setIsLoading } = useContext(LoadingContext);
     const actionsRef = useRef<HTMLDivElement>(null);
     const { mode } = useContext(OrganizationModeContext);
     const isPersonalMode = mode === "personal";
     const wordCount = notes.trim() ? notes.trim().split(/\s+/).length : 0;
     const charCount = notes.length;
-
     return (
         <div className="min-h-full bg-[#F4F5F7] flex flex-col">
             {/* Page header band */}
             <div className="bg-white border-b border-slate-200 px-8 py-5">
-                <div className="mx-auto w-full max-w-7xl 2xl:max-w-[1600px] flex items-center justify-between">                    
+                <div className="mx-auto w-full max-w-7xl 2xl:max-w-[1600px] flex items-center justify-between">
                     <div>
-                    <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Workspace</span>
-                        {!isPersonalMode && (
-                            <>
-                                <span className="text-slate-300">/</span>
-                                <span className="text-[11px] font-semibold uppercase tracking-widest text-[#1E3A5F]">{company}</span>
-                            </>
-                        )}
+                        <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-[11px] font-semibold uppercase tracking-widest text-slate-400">Workspace</span>
+                            {!isPersonalMode && (
+                                <>
+                                    <span className="text-slate-300">/</span>
+                                    <span className="text-[11px] font-semibold uppercase tracking-widest text-[#1E3A5F]">{company}</span>
+                                </>
+                            )}
+                        </div>
+                        <h1 className="text-xl font-bold tracking-tight text-slate-900">New Note</h1>
                     </div>
-                    <h1 className="text-xl font-bold tracking-tight text-slate-900">New Note</h1>
-                </div>
                     <div className="flex items-center gap-3 mr-10">
                         <span className="text-xs text-slate-400 tabular-nums">{wordCount} words</span>
                         <div className="h-4 w-px bg-slate-200" />
@@ -241,17 +230,7 @@ export const FrontPage: React.FC<FrontPageProps> = ({
                                     <button
                                         key={index}
                                         type="button"
-                                        onClick={() => {
-                                            if (isSelected) {
-                                                setSelectedActions((prev) =>
-                                                    prev.filter(
-                                                        (a) => a.title !== action.title || a.integration !== action.integration || a.key !== action.key
-                                                    )
-                                                );
-                                            } else {
-                                                setSelectedActions((prev) => [...prev, action]);
-                                            }
-                                        }}
+                                        onClick={() => setSelectedActions(action)} // ✅ toggle handled by parent
                                         className={[
                                             "group relative flex flex-col items-start rounded-xl border p-5 text-left transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-2",
                                             isSelected

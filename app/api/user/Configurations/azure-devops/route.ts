@@ -2,7 +2,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-function csvToArray(csv: unknown): string[] {
+export function csvToArray(csv: unknown): string[] {
   if (typeof csv !== "string") return [];
   return csv
     .split(",")
@@ -10,7 +10,7 @@ function csvToArray(csv: unknown): string[] {
     .filter(Boolean);
 }
 
-function arrayToCsv(arr: unknown): string {
+export function arrayToCsv(arr: unknown): string {
   if (!Array.isArray(arr)) return "";
   const clean = arr
     .filter((x): x is string => typeof x === "string")

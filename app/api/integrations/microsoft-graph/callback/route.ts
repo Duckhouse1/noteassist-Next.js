@@ -6,9 +6,11 @@ import { encrypt } from "@/lib/cryptation";
 
 
 export const displayNameByProvider: Record<IntegrationOptionsTitle, string> = {
-  Outlook: "Microsoft Outlook",
-  "Azure-Devops":"Azure Devops",
-  SharePoint: "SharePoint"
+    Outlook: "Microsoft Outlook",
+    "Azure-Devops": "Azure Devops",
+    SharePoint: "SharePoint",
+    Jira: "",
+    Notion: ""
 };
 
 async function exchangeCodeForToken(params: {

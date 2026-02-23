@@ -9,7 +9,9 @@ const extractInfoBasedOnAction = async (noteContent: string,action: Action): Pro
     });
 
     if (!response.ok) throw new Error('Failed to call OpenAI API');
-    return response.json();
+    const data = response.json()
+    console.log(data);
+    return data;
 };
 
 const OpenAIService = {

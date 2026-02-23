@@ -1,11 +1,17 @@
 import { createContext } from "react";
 import { OpenAIResponse } from "./types/OpenAI";
-import { OrganisationMode } from "./(app)/[company]/dashboard/dashboardClient";
+import { IntegrationConfigItem, OrganisationMode } from "./(app)/[company]/dashboard/dashboardClient";
+import { ConfigState, DEFAULT_CONFIG } from "./(app)/[company]/dashboard/sections/ConfigurationPage";
 // import { DevOpsProjectsProps } from "./Services/DevOpsServices/Fetchservice";
 // import { DevOpsArea, DevOpsIteration } from "./(app)/[company]/dashboard/components/IntegrationBodys/DevOps/DevOpsPreBody";
 
 // GENERAL -------------------------------------------------
-
+interface UserConfigProps{
+    configs: IntegrationConfigItem[]
+}
+export const UserConfigContext = createContext<UserConfigProps>({
+    configs: []
+})
 interface OrganizationModeProp{
     mode: OrganisationMode
 }
@@ -22,8 +28,6 @@ export const SaveRequirredContext = createContext<SaveRequirredProp>({
     requirred:false,
     setRequirred: () => {}
 })
-
-//DEVOPS ----------------------------------------------------
 interface LoadingContextProps {
     isLoading: boolean;
     setIsLoading: (loading: boolean) => void;
@@ -32,6 +36,8 @@ export const LoadingContext = createContext<LoadingContextProps>({
     isLoading: false,
     setIsLoading: () => { },
 });
+//DEVOPS ----------------------------------------------------
+
 
 
 export type OpenAIActionSolutionsMapContextProps = {

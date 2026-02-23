@@ -90,7 +90,7 @@ export function ConfigurationPage({ value, onChange, onSave, company, connection
   const [saving, setSaving] = useState(false);
   const savedRef = useRef<NodeJS.Timeout | null>(null);
   const [currentConfig, setCurrentConfig] = useState<ConfigTabs>("General");
-
+  const [dirty, setDirty] = useState<Record<string, boolean>>({});
   const providers: IntegrationOptions[] = useMemo(() => [
     { title: "Azure-Devops", connectionString: "/api/integrations/azure-devops/connect", },
     { title: "Outlook", connectionString: "/api/integrations/microsoft-graph/connect", },
@@ -103,7 +103,10 @@ export function ConfigurationPage({ value, onChange, onSave, company, connection
     () => new Set(connections.map((c) => c.provider)),
     [connections]
   );
-
+  function markDirty(connectionId: string) {
+    setDirty((d) => ({ ...d, [connectionId]: true }));
+    setSaved(false);
+  }
   const connectHref = (p: IntegrationOptions) => {
     const returnTo = `/${company}/dashboard`;
     return `${p.connectionString}?returnTo=${encodeURIComponent(returnTo)}&provider=${p.title}`;
@@ -128,40 +131,54 @@ export function ConfigurationPage({ value, onChange, onSave, company, connection
   async function handleSave() {
     setSaving(true);
     try {
-      // Persist Azure DevOps configs for each connection
-      const azureConnections = connections.filter(
-        (c) => c.provider === "Azure-Devops"
-      );
+      const dirtyIds = Object.entries(dirty)
+        .filter(([, v]) => v)
+        .map(([id]) => id);
+
       await Promise.all(
-        azureConnections.map(async (conn) => {
-          const settings = value.azureDevops[conn.id];
-          if (!settings) return;
-          await fetch(
-            "/api/integrations/azure-devops/Configuration",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                org: company,
-                connectionId: conn.id,
-                config: settings,
-              }),
-            }
-          );
+        dirtyIds.map(async (connectionId) => {
+          const conn = connections.find((c) => c.id === connectionId);
+          if (!conn) return;
+
+          // IMPORTANT: use canonical provider ids in DB ("azure-devops", "outlook", ...)
+          // If your conn.provider is "Azure-Devops", normalize it here or fix DB.
+          const provider = conn.provider;
+
+          let body: unknown;
+          if (provider === "Azure-Devops" || provider === "azure-devops") {
+            body = value.azureDevops[connectionId] ?? DEFAULT_AZURE_DEVOPS_SETTINGS;
+          } else if (provider === "Outlook" || provider === "outlook") {
+            body = value.outlook[connectionId] ?? DEFAULT_OUTLOOK_SETTINGS;
+          } else if (provider === "SharePoint" || provider === "sharepoint") {
+            body = value.sharePoint[connectionId] ?? DEFAULT_SHAREPOINT_SETTINGS;
+          } else {
+            return;
+          }
+
+          const res = await fetch(`/api/user/Configurations/${connectionId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+
+          if (!res.ok) {
+            throw new Error(`Failed saving ${connectionId} (${res.status})`);
+          }
         })
       );
 
-      onSave?.(value);
+      setDirty({});
       setSaved(true);
       if (savedRef.current) clearTimeout(savedRef.current);
       savedRef.current = setTimeout(() => setSaved(false), 3000);
+      onSave?.(value);
     } finally {
       setSaving(false);
     }
   }
 
   const onTabSwitch = (newTab: ConfigTabs) => {
-    if(saveRequirred){
+    if (saveRequirred) {
       //show user he has to save first
       return;
     }
@@ -266,19 +283,16 @@ export function ConfigurationPage({ value, onChange, onSave, company, connection
               {currentConfig !== "General" &&
                 currentConfig.provider === "Azure-Devops" && (
                   <AzureDevopsConfig
-                    // settings={getAzureSettings(value, currentConfig.id)}
-                    ADOconnection={connections.find((conn) => conn.provider === "Azure-Devops" as IntegrationOptionsTitle)!}
+                    ADOconnection={currentConfig}
                     company={company}
-                  // onChange={(next) => {
-                  //   setSaved(false);
-                  //   onChange({
-                  //     ...value,
-                  //     azureDevops: {
-                  //       ...value.azureDevops,
-                  //       [currentConfig.id]: next,
-                  //     },
-                  //   });
-                  // }}
+                    settings={getAzureSettings(value, currentConfig.id)}
+                    onChange={(next) => {
+                      onChange({
+                        ...value,
+                        azureDevops: { ...value.azureDevops, [currentConfig.id]: next },
+                      });
+                      markDirty(currentConfig.id);
+                    }}
                   />
                 )}
 
@@ -288,14 +302,11 @@ export function ConfigurationPage({ value, onChange, onSave, company, connection
                     connection={currentConfig}
                     settings={getOutlookSettings(value, currentConfig.id)}
                     onChange={(next) => {
-                      setSaved(false);
                       onChange({
                         ...value,
-                        outlook: {
-                          ...value.outlook,
-                          [currentConfig.id]: next,
-                        },
+                        outlook: { ...value.outlook, [currentConfig.id]: next },
                       });
+                      markDirty(currentConfig.id);
                     }}
                   />
                 )}

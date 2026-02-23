@@ -196,11 +196,11 @@ const FetchAllTeamMembersByProjectID = async (projectID: string): Promise<Assign
   }
 
 }
-const FetchAllAreasProjectID = async (projectID: string): Promise<DevOpsArea | null> => {
+const FetchAllAreasProjectID = async (projectID: string, organisationName:string): Promise<DevOpsArea | null> => {
   try {
     const encodedPat = btoa(`:${pat}`);
 
-    const response = await fetch(`https://dev.azure.com/noteTester/${projectID}/_apis/wit/classificationnodes/areas?$depth=20&api-version=7.1-preview.2`, {
+    const response = await fetch(`https://dev.azure.com/${organisationName}/${projectID}/_apis/wit/classificationnodes/areas?$depth=20&api-version=7.1-preview.2`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -222,11 +222,11 @@ const FetchAllAreasProjectID = async (projectID: string): Promise<DevOpsArea | n
   }
 
 }
-const FetchAllIterationsByProjectID = async (projectID: string): Promise<DevOpsIteration[]> => {
+const FetchAllIterationsByProjectID = async (projectID: string, company:string): Promise<DevOpsIteration[]> => {
   try {
     const encodedPat = btoa(`:${pat}`);
 
-    const response = await fetch(`https://dev.azure.com/noteTester/${projectID}/_apis/work/teamsettings/iterations?api-version=7.0`, {
+    const response = await fetch(`https://dev.azure.com/${company}/${projectID}/_apis/work/teamsettings/iterations?api-version=7.0`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

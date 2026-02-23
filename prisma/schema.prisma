@@ -93,7 +93,8 @@ model IntegrationConnection {
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   azureDevopsConfig  AzureDevopsConfig?
-
+  config IntegrationConfig?
+  
   @@unique([organizationId, userId, provider])
   @@index([organizationId, provider])
   @@index([userId, provider])
@@ -167,6 +168,18 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+model IntegrationConfig {
+  connectionId String @id
+  provider     String // duplicate for convenience/safety
+  schemaVersion Int   @default(1)
+  data String @db.NVarChar(max) // JSON string
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  connection IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@index([provider])
+}
 
 model AzureDevopsConfig {
   id                   String   @id @default(cuid())

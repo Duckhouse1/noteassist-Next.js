@@ -1,3 +1,4 @@
+import { DevOpsElement } from "@/app/types/OpenAI";
 import { authOptions } from "@/lib/auth";
 import { getAzureDevOpsAccessToken } from "@/lib/Integrations/DevOpsAccessToken";
 import { getServerSession } from "next-auth";
@@ -13,14 +14,16 @@ export async function POST(req: Request) {
         console.log("Du sku ikke autoriseret");
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
+    const body = await req.json();
+    const { element } = body as { element :DevOpsElement };
+    // const organizationSlug = searchParams.get("org");
     const accessToken = await getAzureDevOpsAccessToken(userId, orgId);
     console.log(accessToken);
     if (!accessToken) {
         return NextResponse.json({ error: "No DevOps token" }, { status: 400 });
     }
     const url =
-        "https://dev.azure.com/noteTester/TestProject/_apis/wit/workitems/$Task?api-version=7.2-preview.3";
+        `https://dev.azure.com/noteTester/${element.Project?.id}/_apis/wit/workitems/$${element.type}?api-version=7.2-preview.3`;
 
 
     // const body = req.body
@@ -32,8 +35,8 @@ export async function POST(req: Request) {
             Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify([
-            { op: "add", path: "/fields/System.Title", value: "My new task 2" },
-            { op: "add", path: "/fields/System.Description", value: "Created via API 2" },
+            { op: "add", path: "/fields/System.Title", value: element.title },
+            { op: "add", path: "/fields/System.Description", value: element.description },
         ]),
     });
 

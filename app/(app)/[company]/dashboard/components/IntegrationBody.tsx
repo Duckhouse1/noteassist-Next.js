@@ -1,15 +1,12 @@
 import { useContext, useEffect } from "react"
 import { IntegrationOptions, IntegrationOptionsTitle } from "../sections/ConfigurationPage"
 import { DevOpsPreBody } from "./IntegrationBodys/DevOps/DevOpsPreBody"
-import { OpenAIActionSolutionsMapContext } from "@/app/Contexts"
+import { OpenAIActionSolutionsMapContext, UserConfigContext } from "@/app/Contexts"
 
 export const IntegrationBody = ({ IntegrationOption }: { IntegrationOption: IntegrationOptionsTitle }) => {
     const { OpenAISolutionsMap } = useContext(OpenAIActionSolutionsMapContext)
+    const {configs} = useContext(UserConfigContext)
 
-    // useEffect(() => {
-    //     console.log("IntegrationBody OpenAISolutionsMap:", OpenAISolutionsMap);
-    //     console.log("OpenAISolutionsMap.get('Azure DevOps'):", OpenAISolutionsMap.get("Azure DevOps"));
-    // }, [OpenAISolutionsMap]);
 
 
     if (IntegrationOption === "Azure-Devops") {
@@ -17,6 +14,7 @@ export const IntegrationBody = ({ IntegrationOption }: { IntegrationOption: Inte
         if (response?.type === "devops_tasks") {
             return (
                 <>
+                
                     <DevOpsPreBody integrationKey={IntegrationOption} />
 
                     <button
@@ -25,14 +23,14 @@ export const IntegrationBody = ({ IntegrationOption }: { IntegrationOption: Inte
                             const data = response.content
                             console.log("Her har vi vores data: ");
                             console.log(data);
-                            // await fetch("/api/integrations/azure-devops/CreateWorkItems", {
-                            //     method: "POST",
-                            //     headers: { "Content-Type": "application/json" },
-                            //     body: JSON.stringify({
-                            //         // OpenAISolutionsMap
-                            //     })
+                            await fetch("/api/integrations/azure-devops/CreateWorkItems", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    element:data.elements[0]
+                                })
 
-                            // })
+                            })
                         }} >
 
                         Create in {IntegrationOption}

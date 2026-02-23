@@ -11,7 +11,7 @@ const endpoint = "https://actionextractai.openai.azure.com/";
 const fakeEndoint = "lalallal"
 const modelName = "gpt-4o-mini";
 const deployment = "gpt-4o-mini";
-const options = {endpoint:fakeEndoint, apiKey: falseApiKey,deployment,apiVersion,};
+const options = { endpoint: fakeEndoint, apiKey: falseApiKey, deployment, apiVersion, };
 const client = new AzureOpenAI(options);
 // Generic OpenAI call function
 const callOpenAI = async <T extends OpenAIContentType>(systemPrompt: string, userPrompt: string, mockData: T, temperature: number = 0.3, maxTokens: number): Promise<T> => {
@@ -42,55 +42,87 @@ const callOpenAI = async <T extends OpenAIContentType>(systemPrompt: string, use
 };
 
 // Specific extraction functions
-const OpenAIDevOpsTaskExtraction = async (noteContent: string): Promise<DevOpsResponse> => {
+const OpenAIDevOpsTaskExtraction = async (
+    noteContent: string,
+    userConfig: string
+): Promise<DevOpsResponse> => {
     const systemPrompt = `
-You are an expert at extracting structured Azure DevOps work items from meeting notes.
-Return valid JSON only. Do not include any text outside JSON.
+You are an expert at extracting structured engineering work items from meeting notes and outputting strict JSON.
+
+You MUST:
+- Return VALID JSON ONLY (no markdown, no explanation, no code fences).
+- Follow the schema exactly as specified.
+- Use the user-provided work item type hierarchy and names EXACTLY.
+
+Type hierarchy:
+- The userConfig string is a comma-separated ordered list of work item types.
+- The order defines parent -> child nesting.
+- Example: "Feature,Product Backlog Item,Task"
+  means Feature contains Product Backlog Item, which contains Task.
+- You MUST use the type strings exactly as they appear in userConfig (case, spacing, punctuation).
+- If userConfig contains only 1 type, return a flat list of Elements with empty children.
+- If userConfig contains 2+ types, build a nested tree using children[].
+
+ID rules:
+- Each Element.id must be a unique stable-looking string (uuid-like is fine).
+- IDs must be unique across the entire JSON output.
+
+Content rules:
+- title: short, specific, action-oriented.
+- description: concise but clear; include relevant acceptance criteria or implementation hints when useful.
+- children: always present (use [] if none).
+
+Filtering rules:
+- Include ONLY concrete engineering / delivery work suitable for Azure DevOps.
+  Examples: design/implementation, bug fixes, refactoring, pipelines/CI/CD, infrastructure, IaC, configuration, testing, documentation related to product delivery, releases.
+- EXCLUDE completely (do not create any Element for):
+  - writing/sending emails, drafting messages, follow-ups by email/Teams/Slack
+  - scheduling/booking meetings, creating calendar events/invites
+  - pure communication/admin actions ("remind", "ping", "ask", "set up a call")
+
+Top-level grouping guidance:
+- Create multiple top-level elements when the notes describe independent initiatives.
+- Independent initiatives typically involve different customers, products, systems, or goals.
+- Do NOT merge unrelated initiatives under one parent unless explicitly stated.
+
+If notes contain ONLY excluded items, return:
+{ "elements": [] }
+
+De-duplication:
+- Merge duplicates if the same work item is mentioned multiple times.
+
+Completeness:
+- Prefer fewer, high-quality items over many vague items.
+- Do not invent work that is not supported by the notes.
 `;
 
     const userPrompt = `
-Analyze the following meeting notes and extract ONLY Azure DevOps work items: Features, Product Backlog Items (PBIs), and Tasks.
+Extract engineering work items from the meeting notes using this required output schema.
 
-Hierarchy rules:
-- Features contain PBIs
-- PBIs contain Tasks
+User work item type hierarchy (order matters; use EXACT strings):
+${userConfig}
 
-Inclusion criteria (what counts as a work item):
-- Engineering or delivery work that would belong in Azure DevOps (e.g., design/implementation, bug fixes, refactoring, pipelines/CI/CD, infrastructure-as-code, configuration, testing, documentation related to the product, releases).
-
-Exclusion criteria (MUST IGNORE completely — do NOT create any Feature/PBI/Task for these):
-- Writing/sending emails, drafting messages, following up by email/Teams/Slack
-- Scheduling/booking meetings, creating Outlook events/invites, calendar coordination
-- Pure communication/admin actions (e.g., "remind X", "ping Y", "ask Z", "set up a call")
-
-Important filtering rule:
-- If a note describes ONLY communication or scheduling (email/meeting/calendar), omit it entirely.
-- Only include items that result in concrete product/engineering/DevOps work.
-
-Return the result as JSON with this exact structure:
+Output JSON schema (exact):
 {
-  "features": [
+  "elements": [
     {
-      "id": "unique-id",
-      "title": "Feature title",
-      "description": "Feature description",
-      "pbis": [
-        {
-          "id": "unique-id",
-          "title": "PBI title",
-          "description": "PBI description",
-          "tasks": [
-            {
-              "id": "unique-id",
-              "title": "Task title",
-              "description": "Task description"
-            }
-          ]
-        }
-      ]
+      "id": "string",
+      "type": "string (must match one of the types from userConfig exactly)",
+      "title": "string",
+      "description": "string",
+      "children": [ /* same Element schema */ ]
     }
   ]
 }
+
+Hierarchy requirements:
+- Use the first type in userConfig as the top-level element type.
+- Each subsequent type must appear only as children of the previous type.
+- Leaf items (last type) must have "children": [].
+- If a higher-level type is not clearly present in the notes, you may:
+  - either create a minimal parent item to hold children (must still be supported by the notes),
+  - or, if userConfig allows, place work at the highest level that still makes sense.
+  However, NEVER violate the type order.
 
 Meeting Notes:
 ${noteContent}
@@ -100,26 +132,33 @@ Return ONLY valid JSON.
 
 
     const mockData: DevOpsResponse = {
-        features: [
+        elements: [
             {
                 id: "feat-mock-001",
+                type: "",
                 title: "User Authentication System",
                 description: "Implement comprehensive user authentication and authorization",
-                pbis: [
+                children: [
                     {
+
                         id: "pbi-mock-001",
+                        type: "",
                         title: "Implement OAuth 2.0 Login",
                         description: "Add OAuth 2.0 authentication flow for third-party login providers",
-                        tasks: [
+                        children: [
                             {
                                 id: "task-mock-001",
+                                type: "",
                                 title: "Setup OAuth provider configuration",
-                                description: "Configure OAuth settings for Google, Microsoft, and GitHub providers"
+                                description: "Configure OAuth settings for Google, Microsoft, and GitHub providers",
+                                children: []
                             },
                             {
                                 id: "task-mock-002",
+                                type: "",
                                 title: "Implement OAuth callback handlers",
-                                description: "Create backend endpoints to handle OAuth callbacks and token exchange"
+                                description: "Create backend endpoints to handle OAuth callbacks and token exchange",
+                                children: []
                             }
                         ]
                     }
@@ -127,23 +166,29 @@ Return ONLY valid JSON.
             },
             {
                 id: "feat-mock-002",
+                type: "",
                 title: "Dashboard Analytics",
                 description: "Create analytics dashboard with real-time metrics and reporting",
-                pbis: [
+                children: [
                     {
                         id: "pbi-mock-002",
+                        type: "",
                         title: "Build Real-time Metrics Display",
                         description: "Develop dashboard components to show live system metrics and KPIs",
-                        tasks: [
+                        children: [
                             {
                                 id: "task-mock-003",
+                                type: "",
                                 title: "Design dashboard UI components",
-                                description: "Create reusable chart and metric card components using React and Chart.js"
+                                description: "Create reusable chart and metric card components using React and Chart.js",
+                                children: []
                             },
                             {
                                 id: "task-mock-004",
+                                type: "",
                                 title: "Implement WebSocket connection for live updates",
-                                description: "Set up WebSocket infrastructure to push real-time data to dashboard clients"
+                                description: "Set up WebSocket infrastructure to push real-time data to dashboard clients",
+                                children: []
                             }
                         ]
                     }
@@ -255,7 +300,13 @@ const extractInfoBasedOnAction = async (
     switch (action.key) {
         case "integrations":
             if (action.integration === "Azure-Devops") {
-                const content = await OpenAIDevOpsTaskExtraction(noteContent);
+                console.log("Dette er user config: ");
+                console.log(action.UserConfig);
+                console.log("NOTE:", JSON.stringify(noteContent));
+
+                const content = await OpenAIDevOpsTaskExtraction(noteContent, action.UserConfig ?? "");
+                console.log("Dette er openAI response: ");
+                console.log(content);
                 return { type: "devops_tasks", content };
                 // } else if (action.integration === "Jira") {
                 //     const content = await OpenAIDevOpsTaskExtraction(noteContent);
