@@ -1,44 +1,16 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { IntegrationConnection } from "../dashboardClient";
-import {
-  AzureDevopsSettings,
-  DEFAULT_AZURE_DEVOPS_SETTINGS,
-  AzureDevopsConfig,
-} from "./configElements.tsx/AzureDevopsConfig";
-import { GeneralConfig } from "./configElements.tsx/GeneralConfig";
-import {
-  OutlookSettings,
-  DEFAULT_OUTLOOK_SETTINGS,
-  OutlookConfig,
-} from "./configElements.tsx/OutlookConfig";
-import {
-  SharePointSettings,
-  DEFAULT_SHAREPOINT_SETTINGS,
-  SharePointConfig,
-} from "./configElements.tsx/SharePointConfig";
-import { SaveRequirredContext } from "@/app/Contexts";
+import { signOut } from "next-auth/react";
+import { useContext, useState } from "react";
+import { OrganizationModeContext } from "@/app/Contexts";
+import { IntegrationOptionsTitle } from "@/lib/Integrations/Types";
+import { AzureDevopsSettings } from "@/lib/Integrations/AzureDevops/Configuration";
+import { OutlookSettings } from "@/lib/Integrations/Outlook/Configuration";
+import { SharePointSettings } from "./configElements.tsx/SharePointConfig";
 
-/* ───────────────── Types ───────────────── */
-export interface IntegrationOptions {
-  title: IntegrationOptionsTitle;
-  connectionString: string;
-}
-export type IntegrationOptionsTitle =
-  | "Azure-Devops"
-  | "Outlook"
-  | "SharePoint"
-  | "Jira"
-  | "Notion";
+/* ───────────────── Types (kept for other imports) ───────────────── */
 
-export type ConfigTabs = IntegrationConnection | "General";
-
-export type ActionKey =
-  | "integrations"
-  | "email_outlook_draft"
-  | "schedule_outlook_meeting";
+export type ActionKey = "integrations";
 
 export type ConfigState = {
   enabledActions: Record<ActionKey, boolean>;
@@ -48,391 +20,122 @@ export type ConfigState = {
   sharePoint: Record<string, SharePointSettings>;
 };
 
-/* ───────────────── Defaults ───────────────── */
-
 export const DEFAULT_CONFIG: ConfigState = {
-  enabledActions: {
-    integrations: true,
-    email_outlook_draft: true,
-    schedule_outlook_meeting: false,
-  },
-  enabledProviders: ["Azure-Devops", "Outlook"],
+  enabledActions: { integrations: true },
+  enabledProviders: [],
   azureDevops: {},
   outlook: {},
   sharePoint: {},
 };
 
-/* ───────────────── Utils ───────────────── */
-
-function getAzureSettings(value: ConfigState, id: string): AzureDevopsSettings {
-  return value.azureDevops[id] ?? DEFAULT_AZURE_DEVOPS_SETTINGS;
-}
-function getOutlookSettings(value: ConfigState, id: string): OutlookSettings {
-  return value.outlook[id] ?? DEFAULT_OUTLOOK_SETTINGS;
-}
-function getSharePointSettings(value: ConfigState, id: string): SharePointSettings {
-  return value.sharePoint[id] ?? DEFAULT_SHAREPOINT_SETTINGS;
-}
-function toggleInArray<T>(arr: T[], item: T) {
-  return arr.includes(item)
-    ? arr.filter((x) => x !== item)
-    : [...arr, item];
-}
-
 /* ───────────────── Component ───────────────── */
 
-export function ConfigurationPage({ value, onChange, onSave, company, connections, }: {
-  value: ConfigState; onChange: (next: ConfigState) => void; onSave?:
-  (config: ConfigState) => void; company: string; connections: IntegrationConnection[];
-}) {
-  const [saveRequirred, setSaveRequirred] = useState(false)
-  const [saved, setSaved] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const savedRef = useRef<NodeJS.Timeout | null>(null);
-  const [currentConfig, setCurrentConfig] = useState<ConfigTabs>("General");
-  const [dirty, setDirty] = useState<Record<string, boolean>>({});
-  const providers: IntegrationOptions[] = useMemo(() => [
-    { title: "Azure-Devops", connectionString: "/api/integrations/azure-devops/connect", },
-    { title: "Outlook", connectionString: "/api/integrations/microsoft-graph/connect", },
-    { title: "SharePoint", connectionString: "/api/integrations/microsoft-graph/connect", },
-    { title: "Jira", connectionString: "" },
-    { title: "Notion", connectionString: "" },
-  ], []);
+interface AccountPageProps {
+  company: string;
+}
 
-  const connectedSet = useMemo(
-    () => new Set(connections.map((c) => c.provider)),
-    [connections]
-  );
-  function markDirty(connectionId: string) {
-    setDirty((d) => ({ ...d, [connectionId]: true }));
-    setSaved(false);
+export function ConfigurationPage({ company }: AccountPageProps) {
+  const { mode } = useContext(OrganizationModeContext);
+  const [signingOut, setSigningOut] = useState(false);
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    await signOut({ callbackUrl: "/login" });
   }
-  const connectHref = (p: IntegrationOptions) => {
-    const returnTo = `/${company}/dashboard`;
-    return `${p.connectionString}?returnTo=${encodeURIComponent(returnTo)}&provider=${p.title}`;
-  };
-
-  function setActionEnabled(key: ActionKey, enabled: boolean) {
-    setSaved(false);
-    onChange({
-      ...value,
-      enabledActions: { ...value.enabledActions, [key]: enabled },
-    });
-  }
-
-  function toggleProvider(provider: IntegrationOptions) {
-    setSaved(false);
-    onChange({
-      ...value,
-      enabledProviders: toggleInArray(value.enabledProviders, provider.title),
-    });
-  }
-
-  async function handleSave() {
-    setSaving(true);
-    try {
-      const dirtyIds = Object.entries(dirty)
-        .filter(([, v]) => v)
-        .map(([id]) => id);
-
-      await Promise.all(
-        dirtyIds.map(async (connectionId) => {
-          const conn = connections.find((c) => c.id === connectionId);
-          if (!conn) return;
-
-          // IMPORTANT: use canonical provider ids in DB ("azure-devops", "outlook", ...)
-          // If your conn.provider is "Azure-Devops", normalize it here or fix DB.
-          const provider = conn.provider;
-
-          let body: unknown;
-          if (provider === "Azure-Devops" || provider === "azure-devops") {
-            body = value.azureDevops[connectionId] ?? DEFAULT_AZURE_DEVOPS_SETTINGS;
-          } else if (provider === "Outlook" || provider === "outlook") {
-            body = value.outlook[connectionId] ?? DEFAULT_OUTLOOK_SETTINGS;
-          } else if (provider === "SharePoint" || provider === "sharepoint") {
-            body = value.sharePoint[connectionId] ?? DEFAULT_SHAREPOINT_SETTINGS;
-          } else {
-            return;
-          }
-
-          const res = await fetch(`/api/user/Configurations/${connectionId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-          });
-
-          if (!res.ok) {
-            throw new Error(`Failed saving ${connectionId} (${res.status})`);
-          }
-        })
-      );
-
-      setDirty({});
-      setSaved(true);
-      if (savedRef.current) clearTimeout(savedRef.current);
-      savedRef.current = setTimeout(() => setSaved(false), 3000);
-      onSave?.(value);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const onTabSwitch = (newTab: ConfigTabs) => {
-    if (saveRequirred) {
-      //show user he has to save first
-      return;
-    }
-    setCurrentConfig(newTab)
-  }
-
-  const activeId = currentConfig === "General" ? "General" : currentConfig.id;
-  const enabledCount = Object.values(value.enabledActions).filter(Boolean).length;
 
   return (
-    <div className="min-h-full bg-[#F4F5F7]">
+    <div className="bg-white w-full h-full flex flex-col overflow-auto">
       {/* Page header */}
-      <div className="bg-white border-b border-slate-200 px-8 py-5">
-        <div className="mx-auto max-w-7xl 2xl:max-w-[1600px] flex items-center justify-between">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-0.5">
-              Workspace
-            </p>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">
-              Configuration
-            </h1>
-          </div>
-        </div>
+      <div className="p-10 px-20 pb-0">
+        <h1 className="text-4xl font-bold tracking-tighter">Settings</h1>
+        <h2 className="text-gray-400">
+          Account preferences and session management
+        </h2>
       </div>
 
-      {/* Content */}
-      <div className="mx-auto max-w-6xl px-8 py-8">
-        <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-          {/* Left column */}
-          <div className="space-y-5">
-            {/* Tab bar */}
-
-            <div className="flex items-center gap-2 flex-wrap">
-              <button
-                className={[
-                  "rounded-lg px-4 py-1.5 text-xs font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1",
-                  activeId === "General"
-                    ? "bg-[#1E3A5F] text-white shadow-sm"
-                    : "bg-white border border-slate-200 text-slate-600 hover:border-slate-300 shadow-sm",
-                ].join(" ")}
-                onClick={() => onTabSwitch("General")}
-              >
-                General
-              </button>
-
-              {connections.map((connect) => (
-                <button
-                  key={connect.id}
-                  className={[
-                    "rounded-lg px-4 py-1.5 text-xs font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1",
-                    activeId === connect.id
-                      ? "bg-[#1E3A5F] text-white shadow-sm"
-                      : "bg-white border border-slate-200 text-slate-600 hover:border-slate-300 shadow-sm",
-                  ].join(" ")}
-                  onClick={() => onTabSwitch(connect)}
-                >
-                  {connect.displayName}
-                </button>
-              ))}
-
-              <div className="ml-auto flex items-center gap-3">
-                {saved && (
-                  <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
-                    <svg
-                      width="13"
-                      height="13"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    Saved
+      <div className="px-20 pt-8 pb-20">
+        <div className="flex items-start gap-10">
+          {/* Left: settings sections */}
+          <div className="flex-1 flex flex-col gap-6">
+            {/* Account info */}
+            <div className="border border-gray-200 rounded-2xl overflow-hidden">
+              <div className="border-b border-gray-100 bg-slate-50/60 px-6 py-3">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Account</p>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">Workspace</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {mode === "personal" ? "Personal workspace" : company}
+                    </p>
+                  </div>
+                  <span className="inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide bg-slate-100 text-slate-500">
+                    {mode === "personal" ? "Personal" : "Company"}
                   </span>
-                )}
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="cursor-pointer rounded-lg bg-[#1E3A5F] px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#16304F] focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-2 disabled:opacity-60"
-                >
-                  {saving ? "Saving…" : "Save changes"}
-                </button>
-              </div>
-            </div>
-
-            {/* Tab panels */}
-            {currentConfig === "General" && (
-              <GeneralConfig
-                value={value}
-                setActionEnabled={setActionEnabled}
-                toggleProvider={toggleProvider}
-                providers={providers}
-                connectedSet={connectedSet}
-              />
-            )}
-            <SaveRequirredContext.Provider value={{ requirred: saveRequirred, setRequirred: setSaveRequirred }}>
-
-              {currentConfig !== "General" &&
-                currentConfig.provider === "Azure-Devops" && (
-                  <AzureDevopsConfig
-                    ADOconnection={currentConfig}
-                    company={company}
-                    settings={getAzureSettings(value, currentConfig.id)}
-                    onChange={(next) => {
-                      onChange({
-                        ...value,
-                        azureDevops: { ...value.azureDevops, [currentConfig.id]: next },
-                      });
-                      markDirty(currentConfig.id);
-                    }}
-                  />
-                )}
-
-              {currentConfig !== "General" &&
-                currentConfig.provider === "Outlook" && (
-                  <OutlookConfig
-                    connection={currentConfig}
-                    settings={getOutlookSettings(value, currentConfig.id)}
-                    onChange={(next) => {
-                      onChange({
-                        ...value,
-                        outlook: { ...value.outlook, [currentConfig.id]: next },
-                      });
-                      markDirty(currentConfig.id);
-                    }}
-                  />
-                )}
-
-              {currentConfig !== "General" &&
-                currentConfig.provider === "SharePoint" && (
-                  <SharePointConfig
-                    connection={currentConfig}
-                    settings={getSharePointSettings(value, currentConfig.id)}
-                    onChange={(next) => {
-                      setSaved(false);
-                      onChange({
-                        ...value,
-                        sharePoint: {
-                          ...value.sharePoint,
-                          [currentConfig.id]: next,
-                        },
-                      });
-                    }}
-                  />
-                )}
-            </SaveRequirredContext.Provider>
-
-          </div>
-          {/* Right column */}
-          <aside className="space-y-4">
-            {/* Summary card */}
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4">
-                Summary
-              </p>
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-xs text-slate-600">Enabled actions</span>
-                <span className="text-sm font-bold text-slate-900 tabular-nums">
-                  {enabledCount}
-                </span>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">
-                  Active providers
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {(value.enabledActions.integrations
-                    ? value.enabledProviders
-                    : []
-                  ).map((p) => (
-                    <span
-                      key={p}
-                      className="inline-flex items-center gap-1 rounded-full border border-[#1E3A5F]/20 bg-[#1E3A5F]/5 px-2.5 py-1 text-[10px] font-semibold text-[#1E3A5F]"
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full bg-[#1E3A5F]" />
-                      {p}
-                    </span>
-                  ))}
-                  {value.enabledActions.integrations &&
-                    value.enabledProviders.length === 0 && (
-                      <span className="text-xs text-slate-400">
-                        No providers selected.
-                      </span>
-                    )}
-                  {!value.enabledActions.integrations && (
-                    <span className="text-xs text-slate-400">
-                      Integrations disabled.
-                    </span>
-                  )}
                 </div>
               </div>
             </div>
 
-            {/* Connections card */}
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">
-                Connections
-              </p>
-              <p className="text-xs text-slate-500 mb-4">
-                Connect your workspace to external tools.
-              </p>
-              <div className="flex flex-col gap-2">
-                {providers.map((p) => {
-                  const isConnected = connectedSet.has(p.title);
-                  return (
-                    <div
-                      key={p.title}
-                      className={[
-                        "flex items-center justify-between rounded-lg border px-4 py-3",
-                        isConnected
-                          ? "border-emerald-200 bg-emerald-50/50"
-                          : "border-slate-200 bg-white",
-                      ].join(" ")}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <span
-                          className={[
-                            "h-2 w-2 rounded-full",
-                            isConnected ? "bg-emerald-500" : "bg-slate-300",
-                          ].join(" ")}
-                        />
-                        <div>
-                          <span className="text-xs font-semibold text-slate-800">
-                            {p.title}
-                          </span>
-                          <p className="text-[10px] text-slate-500 mt-0.5">
-                            {isConnected ? "Ready to use" : "Not connected"}
-                          </p>
-                        </div>
-                      </div>
-                      {isConnected ? (
-                        <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">
-                          Connected
-                        </span>
-                      ) : (
-                        <Link
-                          href={connectHref(p)}
-                          className="rounded-md bg-[#1E3A5F] px-3 py-1.5 text-[10px] font-bold text-white uppercase tracking-wide shadow-sm transition hover:bg-[#16304F] focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-1"
-                        >
-                          Connect
-                        </Link>
-                      )}
-                    </div>
-                  );
-                })}
+            {/* Danger zone */}
+            <div className="border border-red-200 rounded-2xl overflow-hidden">
+              <div className="border-b border-red-100 bg-red-50/60 px-6 py-3">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-red-400">Session</p>
+              </div>
+              <div className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">Sign out</p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      End your current session and return to the login page
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleSignOut}
+                    disabled={signingOut}
+                    className="cursor-pointer rounded-xl bg-red-600 text-sm font-medium text-white px-4 py-2 hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {signingOut ? "Signing out…" : "Sign out"}
+                  </button>
+                </div>
               </div>
             </div>
-          </aside>
+          </div>
+
+          {/* Right: info sidebar */}
+          <div className="w-[280px] shrink-0 flex flex-col gap-4">
+            <div className="border border-gray-200 rounded-2xl p-5">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Quick info</p>
+              <ul className="space-y-3">
+                <li className="flex items-start gap-2.5 text-xs text-slate-500 leading-relaxed">
+                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </span>
+                  Manage integrations from the Integrations tab
+                </li>
+                <li className="flex items-start gap-2.5 text-xs text-slate-500 leading-relaxed">
+                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </span>
+                  Organisation settings are available to workspace owners
+                </li>
+                <li className="flex items-start gap-2.5 text-xs text-slate-500 leading-relaxed">
+                  <span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </span>
+                  Signing out will not delete any saved notes or configurations
+                </li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
-    </div >
+    </div>
   );
 }

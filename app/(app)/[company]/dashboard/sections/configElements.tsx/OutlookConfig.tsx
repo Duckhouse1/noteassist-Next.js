@@ -1,321 +1,58 @@
-"use client";
 
-import { IntegrationConnection } from "../../dashboardClient";
+import { OutlookMeetingDuration, OutlookSettings } from "@/lib/Integrations/Outlook/Configuration";
 
-/* ───────────────── Types ───────────────── */
-
-export type OutlookMeetingDuration = 15 | 30 | 60 | 90;
-
-export type OutlookSettings = {
-  defaultSignature: string;
-  sendAsAlias: string;
-  requestReadReceipts: boolean;
-  autoCcEnabled: boolean;
-  autoCcAddress: string;
-  meetingDurationDefault: OutlookMeetingDuration;
-  includeTeamsLink: boolean;
-  outLookDraft: boolean;
-  OutlookMeeting: boolean;
+type Props = {
+  config?: OutlookSettings;
+  // data: FetchedADOData | null;
+  onPatch: (patch: Partial<OutlookSettings>) => void;
 };
 
-export const DEFAULT_OUTLOOK_SETTINGS: OutlookSettings = {
-  defaultSignature: "",
-  sendAsAlias: "",
-  requestReadReceipts: false,
-  autoCcEnabled: false,
-  autoCcAddress: "",
-  meetingDurationDefault: 30,
-  includeTeamsLink: true,
-  outLookDraft: true,
-  OutlookMeeting: true,
-};
-
-interface OutlookConfigProps {
-  connection: IntegrationConnection;
-  settings: OutlookSettings;
-  onChange: (next: OutlookSettings) => void;
-}
-
-/* ───────────────── Helpers ───────────────── */
-
-const DURATIONS: OutlookMeetingDuration[] = [15, 30, 60, 90];
-
-function parseDuration(value: string): OutlookMeetingDuration {
-  const n = Number(value);
-  return (DURATIONS as number[]).includes(n) ? (n as OutlookMeetingDuration) : 30;
-}
-
-function normalizeEmail(value: string): string {
-  return value.trim();
-}
-
-/* ───────────────── Component ───────────────── */
-
-export function OutlookConfig({ connection, settings, onChange }: OutlookConfigProps) {
-  function update(patch: Partial<OutlookSettings>) {
-    const next: OutlookSettings = { ...settings, ...patch };
-
-    // tiny rule: if auto cc is disabled, clear address
-    if (!next.autoCcEnabled) next.autoCcAddress = "";
-
-    // normalize inputs
-    next.sendAsAlias = normalizeEmail(next.sendAsAlias);
-    next.autoCcAddress = normalizeEmail(next.autoCcAddress);
-
-    onChange(next);
-  }
+export default function OutlookConfigPanel({ config, onPatch }: Props) {
+  const MEETING_DURATIONS: OutlookMeetingDuration[] = [15, 30, 60, 90];
 
   return (
-    <div className="space-y-5">
-      {/* Optional connection header */}
-      <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-100">
-          <h2 className="text-sm font-semibold text-slate-900">Connection</h2>
-          <p className="mt-0.5 text-xs text-slate-500">
-            Settings for <span className="font-medium">{connection.displayName}</span>.
+    <div className="grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-6">
+
+      {/* Default Signature */}
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-sm font-medium text-gray-800">
+            Default Signature
+          </h2>
+          <p className="text-xs text-gray-400">
+            This signature will be appended to generated emails.
           </p>
         </div>
-      </section>
-
-      {/* Actions */}
-      <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-100">
-          <h2 className="text-sm font-semibold text-slate-900">Actions</h2>
-          <p className="mt-0.5 text-xs text-slate-500">Enable the tools users can select from.</p>
-        </div>
-
-        <div className="divide-y divide-slate-100">
-          <Row
-            title="Create Outlook draft email"
-            desc="Generate a structured email draft from notes."
-            checked={settings.outLookDraft}
-            onChange={(v) => update({ outLookDraft: v })}
-          />
-          <Row
-            title="Schedule Outlook meeting"
-            desc="Create a scheduled meeting in Outlook."
-            checked={settings.OutlookMeeting}
-            onChange={(v) => update({ OutlookMeeting: v })}
-          />
-        </div>
-      </section>
-
-      {/* Email settings */}
-      <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-100">
-          <h2 className="text-sm font-semibold text-slate-900">Email</h2>
-          <p className="mt-0.5 text-xs text-slate-500">Defaults applied when generating email drafts.</p>
-        </div>
-
-        <div className="px-6 py-5 space-y-5">
-          <FieldRow label="Default signature" hint="Signature appended to all generated drafts.">
-            <TextareaInput
-              value={settings.defaultSignature}
-              onChange={(v) => update({ defaultSignature: v })}
-              placeholder={"Kind regards,\nYour Name"}
-              rows={3}
-            />
-          </FieldRow>
-
-          <FieldRow label="Send-as alias" hint="Optional alias address used as the From field.">
-            <TextInput
-              value={settings.sendAsAlias}
-              onChange={(v) => update({ sendAsAlias: v })}
-              placeholder="e.g. noreply@company.com"
-            />
-          </FieldRow>
-
-          <FieldRow label="Auto CC" hint="Always CC an address on generated drafts.">
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <Toggle checked={settings.autoCcEnabled} onChange={(v) => update({ autoCcEnabled: v })} />
-                <span className="text-xs text-slate-500">Enable auto CC</span>
-              </div>
-
-              {settings.autoCcEnabled && (
-                <TextInput
-                  value={settings.autoCcAddress}
-                  onChange={(v) => update({ autoCcAddress: v })}
-                  placeholder="e.g. team@company.com"
-                />
-              )}
-            </div>
-          </FieldRow>
-        </div>
-
-        <div className="divide-y divide-slate-100 border-t border-slate-100">
-          <Row
-            title="Request read receipts"
-            desc="Ask recipients to confirm when they open the email."
-            checked={settings.requestReadReceipts}
-            onChange={(v) => update({ requestReadReceipts: v })}
-          />
-        </div>
-      </section>
-
-      {/* Meeting settings */}
-      <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        <div className="px-6 py-5 border-b border-slate-100">
-          <h2 className="text-sm font-semibold text-slate-900">Meetings</h2>
-          <p className="mt-0.5 text-xs text-slate-500">Defaults applied when scheduling meetings.</p>
-        </div>
-
-        <div className="px-6 py-5 space-y-5">
-          <FieldRow label="Default duration" hint="Duration pre-selected when creating new meetings.">
-            <SelectInput
-              value={String(settings.meetingDurationDefault)}
-              onChange={(v) => update({ meetingDurationDefault: parseDuration(v) })}
-              options={[
-                { label: "15 minutes", value: "15" },
-                { label: "30 minutes", value: "30" },
-                { label: "60 minutes", value: "60" },
-                { label: "90 minutes", value: "90" },
-              ]}
-            />
-          </FieldRow>
-        </div>
-
-        <div className="divide-y divide-slate-100 border-t border-slate-100">
-          <Row
-            title="Include Teams link"
-            desc="Automatically attach a Microsoft Teams meeting link."
-            checked={settings.includeTeamsLink}
-            onChange={(v) => update({ includeTeamsLink: v })}
-          />
-        </div>
-      </section>
-    </div>
-  );
-}
-
-/* ───────────────── Shared primitives ───────────────── */
-
-function Row({
-  title,
-  desc,
-  checked,
-  onChange,
-}: {
-  title: string;
-  desc: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4 px-6 py-4">
-      <div>
-        <p className="text-sm font-medium text-slate-900">{title}</p>
-        <p className="mt-0.5 text-xs text-slate-500">{desc}</p>
+        <textarea
+          rows={4}
+          className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900
+           shadow-sm outline-none transition placeholder:text-gray-400 focus:border-gray-400 focus:ring-2 focus:ring-gray-200 resize-none "
+          placeholder="Best regards,&#10;Your Name"
+          value={config?.defaultSignature ?? ""}
+          onChange={(e) => onPatch({ defaultSignature: e.target.value })}
+        />
       </div>
-      <Toggle checked={checked} onChange={onChange} />
-    </div>
-  );
-}
 
-function FieldRow({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="grid gap-1.5 sm:grid-cols-[180px_1fr] sm:items-start">
-      <div className="pt-2">
-        <p className="text-xs font-semibold text-slate-700">{label}</p>
-        {hint && <p className="mt-0.5 text-[11px] text-slate-400 leading-snug">{hint}</p>}
+      {/* Default Meeting Duration */}
+      <div className="flex flex-col gap-2">
+        <h2 className="text-sm font-semibold">Default Meeting Duration</h2>
+        <select
+          className="border border-gray-400 rounded p-2"
+          value={config?.meetingDurationDefault}
+          onChange={(e) =>
+            onPatch({
+              meetingDurationDefault: Number(e.target.value) as OutlookMeetingDuration,
+            })
+          }
+        >
+          {MEETING_DURATIONS.map((duration) => (
+            <option key={duration} value={duration}>
+              {duration} minutes
+            </option>
+          ))}
+        </select>
       </div>
-      <div>{children}</div>
+
     </div>
-  );
-}
-
-function TextInput({
-  value,
-  onChange,
-  placeholder,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-}) {
-  return (
-    <input
-      type="text"
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-[#1E3A5F] focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20"
-    />
-  );
-}
-
-function TextareaInput({
-  value,
-  onChange,
-  placeholder,
-  rows = 3,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  rows?: number;
-}) {
-  return (
-    <textarea
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      rows={rows}
-      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 placeholder:text-slate-400 shadow-sm transition focus:border-[#1E3A5F] focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20 resize-none"
-    />
-  );
-}
-
-function SelectInput({
-  value,
-  onChange,
-  options,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  options: { label: string; value: string }[];
-}) {
-  return (
-    <select
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 shadow-sm transition focus:border-[#1E3A5F] focus:outline-none focus:ring-2 focus:ring-[#1E3A5F]/20 appearance-none cursor-pointer"
-    >
-      {options.map((o) => (
-        <option key={o.value} value={o.value}>
-          {o.label}
-        </option>
-      ))}
-    </select>
-  );
-}
-
-function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className={[
-        "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#1E3A5F] focus:ring-offset-2",
-        checked ? "bg-[#1E3A5F]" : "bg-slate-200",
-      ].join(" ")}
-    >
-      <span
-        className={[
-          "inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform",
-          checked ? "translate-x-6" : "translate-x-1",
-        ].join(" ")}
-      />
-    </button>
   );
 }

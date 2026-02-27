@@ -1,32 +1,36 @@
-import { createContext } from "react";
+import { createContext, Dispatch, SetStateAction } from "react";
 import { OpenAIResponse } from "./types/OpenAI";
-import { IntegrationConfigItem, OrganisationMode } from "./(app)/[company]/dashboard/dashboardClient";
-import { ConfigState, DEFAULT_CONFIG } from "./(app)/[company]/dashboard/sections/ConfigurationPage";
+import { OrganisationMode, Pages } from "./(app)/[company]/dashboard/dashboardClient";
+import { Note } from "./(app)/[company]/dashboard/sections/MyNotesPage";
+import { ProviderConfigItem } from "@/lib/Integrations/ProviderUserConfigs";
 // import { DevOpsProjectsProps } from "./Services/DevOpsServices/Fetchservice";
 // import { DevOpsArea, DevOpsIteration } from "./(app)/[company]/dashboard/components/IntegrationBodys/DevOps/DevOpsPreBody";
 
 // GENERAL -------------------------------------------------
-interface UserConfigProps{
-    configs: IntegrationConfigItem[]
+interface UserConfigProps {
+  configs: ProviderConfigItem[];
+  setConfigs: React.Dispatch<React.SetStateAction<ProviderConfigItem[]>>;
 }
+
 export const UserConfigContext = createContext<UserConfigProps>({
-    configs: []
-})
-interface OrganizationModeProp{
+  configs: [],
+  setConfigs: () => {},
+});
+interface OrganizationModeProp {
     mode: OrganisationMode
 }
 export const OrganizationModeContext = createContext<OrganizationModeProp>({
     mode: "personal"
 })
 
-interface SaveRequirredProp{
-    requirred:boolean
+interface SaveRequirredProp {
+    requirred: boolean
     setRequirred: (requirred: boolean) => void
 }
 
 export const SaveRequirredContext = createContext<SaveRequirredProp>({
-    requirred:false,
-    setRequirred: () => {}
+    requirred: false,
+    setRequirred: () => { }
 })
 interface LoadingContextProps {
     isLoading: boolean;
@@ -36,6 +40,16 @@ export const LoadingContext = createContext<LoadingContextProps>({
     isLoading: false,
     setIsLoading: () => { },
 });
+
+
+interface CurrentSite{
+    currentPage: Pages,
+    setCurrentPage: Dispatch<SetStateAction<Pages>>
+}
+export const CurrentSiteContext = createContext<CurrentSite>({
+    currentPage: "frontpage",
+    setCurrentPage: () => {}
+})
 //DEVOPS ----------------------------------------------------
 
 
@@ -52,12 +66,12 @@ export const OpenAIActionSolutionsMapContext =
     });
 
 interface NotesContextProps {
-    notes: string
-    setNotes: (notes: string) => void
+    notes: Note | null
+    setNotes: (notes: Note) => void
 }
 
 export const NotesContext = createContext<NotesContextProps>({
-    notes: "",
+    notes: {title:"",content:"",id:null},
     setNotes: () => { }
 })
 
@@ -71,5 +85,18 @@ export const ShowNotesBodyContext = createContext<ShowNotesBodyProps>({
     setShowNoteBody: () => { }
 })
 
+
+// ACTION EXECUTION -------------------------------------------------------------------
+interface ActionExecutionContextProps {
+    isExecuting: boolean;
+    isCompleted: boolean;
+    executeAction: () => Promise<void>;
+}
+
+export const ActionExecutionContext = createContext<ActionExecutionContextProps>({
+    isExecuting: false,
+    isCompleted: false,
+    executeAction: async () => {},
+});
 
 // JIRA -------------------------------------------------------------------------------

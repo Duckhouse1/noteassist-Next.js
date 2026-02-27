@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { decrypt } from "../cryptation";
+import { decrypt } from "../../cryptation";
 import { refreshAccessToken } from "./RefreshAccessToken";
-import { IntegrationOptionsTitle } from "@/app/(app)/[company]/dashboard/sections/ConfigurationPage";
+import { IntegrationOptionsTitle, ProviderId } from "../Types";
 
 export async function getAzureDevOpsAccessToken(userId: string, organizationId: string) {
   const conn = await prisma.integrationConnection.findUnique({
@@ -9,7 +9,7 @@ export async function getAzureDevOpsAccessToken(userId: string, organizationId: 
       organizationId_userId_provider: {
         organizationId,
         userId,
-        provider: "Azure-Devops" as IntegrationOptionsTitle,
+        provider: "azure-devops" as ProviderId,
       },
     },
     select: {

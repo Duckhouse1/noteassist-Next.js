@@ -56,21 +56,22 @@ export async function GET(req: NextRequest) {
     }
 
     // Parse org/project from meta or use the stored meta JSON
-    const devopsConfig = await prisma.azureDevopsConfig.findUnique({
-      where: { connectionId: connection.id },
-    });
+    // const devopsConfig = await prisma.integrationConfig.findUnique({
+    //   where: { connectionId: connection.id },
+      
+    // });
 
-    const devopsOrg = devopsConfig?.defaultOrganization ?? "";
+    // const devopsOrg = devopsConfig?.data ?? "";
 
-    if (!devopsOrg) {
-      return NextResponse.json(
-        { error: "Azure DevOps organisation not set — save your configuration first" },
-        { status: 400 }
-      );
-    }
+    // if (!devopsOrg) {
+    //   return NextResponse.json(
+    //     { error: "Azure DevOps organisation not set — save your configuration first" },
+    //     { status: 400 }
+    //   );
+    // }
 
     // Fetch work item types from Azure DevOps REST API
-    const url = `https://dev.azure.com/${devopsOrg}/${projectId}/_apis/wit/workitemtypes?api-version=7.1`;
+    const url = `https://dev.azure.com/${organizationSlug}/${projectId}/_apis/wit/workitemtypes?api-version=7.1`;
 
     const devopsRes = await fetch(url, {
       headers: {
@@ -87,7 +88,7 @@ export async function GET(req: NextRequest) {
         { status: devopsRes.status }
       );
     }
-    console.log(devopsRes);
+    // console.log(devopsRes);
     const data = await devopsRes.json();
 
     // Filter out system types users typically don't care about

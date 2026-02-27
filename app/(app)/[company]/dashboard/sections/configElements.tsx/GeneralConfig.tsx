@@ -1,7 +1,8 @@
 "use client";
 
 import { signOut } from "next-auth/react";
-import { ActionKey, ConfigState, IntegrationOptions } from "../ConfigurationPage";
+import { ActionKey, ConfigState } from "../ConfigurationPage";
+import { IntegrationOptions } from "@/lib/Integrations/Types";
 
 /* ───────────────── Types ───────────────── */
 
@@ -81,7 +82,7 @@ export function GeneralConfig({ value, setActionEnabled, toggleProvider, provide
                     <p className="mt-0.5 text-xs text-slate-500">Enable the tools users can select from.</p>
                 </div>
 
-                <div className="divide-y divide-slate-100">
+                {/* <div className="divide-y divide-slate-100">
                     <Row
                         title="Create Outlook draft email"
                         desc="Generate a structured email draft from notes."
@@ -94,7 +95,7 @@ export function GeneralConfig({ value, setActionEnabled, toggleProvider, provide
                         checked={value.enabledActions.schedule_outlook_meeting}
                         onChange={(v) => setActionEnabled("schedule_outlook_meeting", v)}
                     />
-                </div>
+                </div> */}
             </section>
             <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                 <div className="px-6 py-5 border-b border-slate-100">
@@ -102,6 +103,7 @@ export function GeneralConfig({ value, setActionEnabled, toggleProvider, provide
                     <p className="mt-0.5 text-xs text-slate-500">Manage your account settings.</p>
                 </div>
                 <div className="px-6 py-4 flex-col">
+                    <p></p>
                     <button
                         type="button"
                         className="flex justify-self-end rounded-lg border border-red-200 bg-white px-4 py-2 text-xs font-semibold text-red-600 shadow-sm transition hover:bg-red-50 hover:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-300 focus:ring-offset-1"
@@ -117,7 +119,7 @@ export function GeneralConfig({ value, setActionEnabled, toggleProvider, provide
 
 /* ───────────────── Shared primitives ───────────────── */
 
-function Row({ title, desc, checked, onChange }: { title: string; desc: string; checked: boolean; onChange: (v: boolean) => void }) {
+export function Row({ title, desc, checked, onChange }: { title: string; desc: string; checked: boolean; onChange: (v: boolean) => void }) {
     return (
         <div className="flex items-center justify-between gap-4 px-6 py-4">
             <div>

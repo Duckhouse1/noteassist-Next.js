@@ -80,7 +80,7 @@ export default function UserLoginPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50 focus:outline-none focus:ring-4 focus:ring-indigo-200"
+              className="cursor-pointer inline-flex w-full items-center justify-center rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-700 disabled:opacity-50 focus:outline-none focus:ring-4 focus:ring-indigo-200"
             >
               {isSubmitting ? "Signing in…" : "Sign in"}
             </button>

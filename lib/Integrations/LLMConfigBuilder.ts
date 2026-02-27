@@ -1,27 +1,31 @@
-import { IntegrationConfigItem } from "@/app/(app)/[company]/dashboard/dashboardClient";
+import { ProviderConfigItem } from "./ProviderUserConfigs";
 
-
-  export function buildUserConfigString(item: IntegrationConfigItem): string {
-        switch (item.provider) {
-            case "azure-devops": {
-                const cfg = item.config;
-                return `${cfg.defaultWorkItemTypes.join(", ")}`;
-            }
-
-            case "outlook": {
-                const cfg = item.config;
-                return `Outlook defaults:
-- Meeting duration: ${cfg.meetingDurationDefault} minutes
-- Default ending: ${cfg.sendAsAlias}`;
-            }
-
-            case "sharepoint": {
-                // build whatever you need
-                return `SharePoint defaults loaded.`;
-            }
-
-            case "jira": {
-                return `Jira defaults loaded.`;
-            }
-        }
+export function buildUserConfigString(item: ProviderConfigItem): string {
+  switch (item.provider) {
+    case "azure-devops": {
+      const cfg = item.config;
+      const wits =
+        (cfg.defaultProject && cfg.projectWorkItemTypes?.[cfg.defaultProject]) || [];
+      return wits.join(", ");
     }
+
+    case "outlook": {
+      const cfg = item.config;
+      return `Default ending: ${cfg.defaultSignature}`;
+    }
+
+    case "sharepoint": {
+      return `SharePoint defaults loaded.`;
+    }
+
+    case "jira": {
+      const cfg = item.config;
+      const types = cfg.defaultIssueTypes ?? [];
+      return types.length > 0 ? types.join(", ") : "Jira defaults loaded.";
+    }
+
+    case "notion": {
+      return "Notion default loaded";
+    }
+  }
+}

@@ -1,8 +1,8 @@
 // Services/OpenAIService.ts
 import { NextRequest, NextResponse } from "next/server";
-import { Action } from "@/app/(app)/[company]/dashboard/sections/frontPage";
 import { OpenAIContentType, DevOpsResponse, EmailDraft, MeetingSummary, TaskList, OpenAIResponse } from "@/app/types/OpenAI";
 import { AzureOpenAI } from "openai";
+import { Action } from "@/lib/Integrations/Types";
 const pattoken = process.env.OPEN_AI_API_KEY!
 const apiKey = process.env.AZURE_OPENAI_API_KEY!;
 const falseApiKey = "notakey"
@@ -135,27 +135,27 @@ Return ONLY valid JSON.
         elements: [
             {
                 id: "feat-mock-001",
-                type: "",
+                type: "Epic",
                 title: "User Authentication System",
                 description: "Implement comprehensive user authentication and authorization",
                 children: [
                     {
 
                         id: "pbi-mock-001",
-                        type: "",
+                        type: "Feature",
                         title: "Implement OAuth 2.0 Login",
                         description: "Add OAuth 2.0 authentication flow for third-party login providers",
                         children: [
                             {
                                 id: "task-mock-001",
-                                type: "",
+                                type: "Task",
                                 title: "Setup OAuth provider configuration",
                                 description: "Configure OAuth settings for Google, Microsoft, and GitHub providers",
                                 children: []
                             },
                             {
                                 id: "task-mock-002",
-                                type: "",
+                                type: "Task",
                                 title: "Implement OAuth callback handlers",
                                 description: "Create backend endpoints to handle OAuth callbacks and token exchange",
                                 children: []
@@ -166,26 +166,26 @@ Return ONLY valid JSON.
             },
             {
                 id: "feat-mock-002",
-                type: "",
+                type: "Epic",
                 title: "Dashboard Analytics",
                 description: "Create analytics dashboard with real-time metrics and reporting",
                 children: [
                     {
                         id: "pbi-mock-002",
-                        type: "",
+                        type: "Feature",
                         title: "Build Real-time Metrics Display",
                         description: "Develop dashboard components to show live system metrics and KPIs",
                         children: [
                             {
                                 id: "task-mock-003",
-                                type: "",
+                                type: "Task",
                                 title: "Design dashboard UI components",
                                 description: "Create reusable chart and metric card components using React and Chart.js",
                                 children: []
                             },
                             {
                                 id: "task-mock-004",
-                                type: "",
+                                type: "Task",
                                 title: "Implement WebSocket connection for live updates",
                                 description: "Set up WebSocket infrastructure to push real-time data to dashboard clients",
                                 children: []
@@ -297,9 +297,8 @@ const extractInfoBasedOnAction = async (
     noteContent: string,
     action: Action
 ): Promise<OpenAIResponse> => {
-    switch (action.key) {
-        case "integrations":
-            if (action.integration === "Azure-Devops") {
+    switch (action.integration) {
+        case "azure-devops":
                 console.log("Dette er user config: ");
                 console.log(action.UserConfig);
                 console.log("NOTE:", JSON.stringify(noteContent));
@@ -311,11 +310,8 @@ const extractInfoBasedOnAction = async (
                 // } else if (action.integration === "Jira") {
                 //     const content = await OpenAIDevOpsTaskExtraction(noteContent);
                 //     return { type: "jira_tasks", content };
-            } else {
-                throw new Error(`Unsupported integration: ${action.integration}`);
-            }
 
-        case "email_outlook_draft": {
+        case "outlook": {
             const content = await OpenAIEmailDraftExtraction(noteContent);
             return { type: "email_draft", content };
         }
@@ -330,14 +326,21 @@ const extractInfoBasedOnAction = async (
         //     return { type: "task_list", content };
         // }
 
-        case "schedule_outlook_meeting": {
+        case "sharepoint": {
             const content = await OpenAIEmailDraftExtraction(noteContent);
             return { type: "email_draft", content };
         }
+
+        case "jira": {
+            const content = await OpenAIDevOpsTaskExtraction(noteContent, action.UserConfig ?? "");
+            return { type: "jira_tasks", content };
+        }
+
+        // case "attach_photo":
         // case "attach_photo":
         //     throw new Error(`Action type ${action.key} not yet implemented`);
-
-
+        default:
+            throw new Error(`Unsupported action key: ${action.key}`);
     }
 };
 

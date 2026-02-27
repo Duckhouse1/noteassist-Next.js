@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ProviderOptions } from "../connect/route";
-import { IntegrationOptionsTitle } from "@/app/(app)/[company]/dashboard/sections/ConfigurationPage";
 import { encrypt } from "@/lib/cryptation";
+import { IntegrationOptionsTitle } from "@/lib/Integrations/Types";
 
 
 export const displayNameByProvider: Record<IntegrationOptionsTitle, string> = {
     Outlook: "Microsoft Outlook",
     "Azure-Devops": "Azure Devops",
     SharePoint: "SharePoint",
-    Jira: "",
+    Jira: "Jira",
     Notion: ""
 };
 

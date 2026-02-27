@@ -12,7 +12,7 @@ export function NotesBody() {
         <>
             <div className="flex flex-col min-h-[60vh] h-full">
                 <textarea
-                    value={notes}
+                    value={notes?.content}
                     readOnly
                     className="
       flex-1 w-full resize-none

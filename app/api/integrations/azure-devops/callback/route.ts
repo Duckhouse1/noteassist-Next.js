@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { IntegrationOptionsTitle } from "@/app/(app)/[company]/dashboard/sections/ConfigurationPage";
 import { displayNameByProvider } from "../../microsoft-graph/callback/route";
 import { encrypt } from "@/lib/cryptation";
+import { ProviderId } from "@/lib/Integrations/Types";
 
 async function exchangeCodeForToken(params: {
     tenant: string;
@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
         state: string;
         codeVerifier: string;
         userId: string;
-        provider: IntegrationOptionsTitle;
+        provider: ProviderId;
         organizationId: string;
         returnTo: string;
         createdAt: number;

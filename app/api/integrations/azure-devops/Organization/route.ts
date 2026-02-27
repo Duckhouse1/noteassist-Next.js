@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAzureDevOpsAccessToken } from "@/lib/Integrations/DevOpsAccessToken";
+import { getAzureDevOpsAccessToken } from "@/lib/Integrations/AzureDevops/DevOpsAccessToken";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 

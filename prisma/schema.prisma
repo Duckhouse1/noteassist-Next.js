@@ -23,9 +23,10 @@ model Organization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  members      Membership[]
-  notes        Note[]
-  integrations IntegrationConnection[]
+  members          Membership[]
+  notes            Note[]
+  integrations     IntegrationConnection[]
+  workspaceConfigs UserWorkspaceConfig[]
 }
 
 // One user can belong to many orgs
@@ -49,15 +50,15 @@ model Membership {
 // ==========================
 
 model Note {
-  id             String   @id @default(cuid())
+  id             String @id @default(cuid())
   organizationId String
   userId         String
 
-  title          String?
-  content        String   @db.NVarChar(max)
+  title   String?
+  content String  @db.NVarChar(max)
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -73,28 +74,27 @@ model Note {
 // Scoped to an organization
 
 model IntegrationConnection {
-  id             String   @id @default(cuid())
+  id             String @id @default(cuid())
   organizationId String
   userId         String
 
-  provider       String   // "microsoft" | "azuredevops"
-  displayName    String?
+  provider    String // "microsoft" | "azuredevops"
+  displayName String?
 
-  accessToken    String?  @db.NVarChar(max)
-  refreshToken   String?  @db.NVarChar(max)
-  expiresAt      DateTime?
-  scope          String?
-  meta           String?  @db.NVarChar(max) // JSON string (tenantId, org, etc.)
+  accessToken  String?   @db.NVarChar(max)
+  refreshToken String?   @db.NVarChar(max)
+  expiresAt    DateTime?
+  scope        String?
+  meta         String?   @db.NVarChar(max) // JSON string (tenantId, org, etc.)
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  azureDevopsConfig  AzureDevopsConfig?
   config IntegrationConfig?
-  
+
   @@unique([organizationId, userId, provider])
   @@index([organizationId, provider])
   @@index([userId, provider])
@@ -112,11 +112,12 @@ model User {
   emailVerified DateTime?
   image         String?
 
-  accounts      Account[]
-  sessions      Session[]
-  memberships   Membership[]
-  notes         Note[]
-  integrations  IntegrationConnection[]
+  accounts         Account[]
+  sessions         Session[]
+  memberships      Membership[]
+  notes            Note[]
+  integrations     IntegrationConnection[]
+  workspaceConfigs UserWorkspaceConfig[]
 }
 
 // ==========================
@@ -124,31 +125,29 @@ model User {
 // ==========================
 
 model Account {
-  id                String  @id @default(cuid())
+  id                String @id @default(cuid())
   userId            String
   type              String
   provider          String
   providerAccountId String
 
-  refresh_token     String? @db.NVarChar(max)
-  access_token      String? @db.NVarChar(max)
-  id_token          String? @db.NVarChar(max)
+  refresh_token String? @db.NVarChar(max)
+  access_token  String? @db.NVarChar(max)
+  id_token      String? @db.NVarChar(max)
 
-  expires_at        Int?
-  token_type        String?
-  scope             String? @db.NVarChar(max)
-  session_state     String?
+  expires_at    Int?
+  token_type    String?
+  scope         String? @db.NVarChar(max)
+  session_state String?
 
-  expires_in        Int?
-  ext_expires_in    Int?
+  expires_in     Int?
+  ext_expires_in Int?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@index([userId])
 }
-
-
 
 model Session {
   id           String   @id @default(cuid())
@@ -169,26 +168,33 @@ model VerificationToken {
 }
 
 model IntegrationConfig {
-  connectionId String @id
-  provider     String // duplicate for convenience/safety
-  schemaVersion Int   @default(1)
-  data String @db.NVarChar(max) // JSON string
-  updatedAt    DateTime @updatedAt
-  createdAt    DateTime @default(now())
+  connectionId  String   @id
+  provider      String // duplicate for convenience/safety
+  schemaVersion Int      @default(1)
+  data          String   @db.NVarChar(max) // JSON string
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
 
   connection IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
 
   @@index([provider])
 }
 
-model AzureDevopsConfig {
-  id                   String   @id @default(cuid())
-  connectionId         String   @unique
+model UserWorkspaceConfig {
+  id             String @id @default(cuid())
+  organizationId String
+  userId         String
 
-  defaultOrganization  String   @default("")
-  defaultProject       String   @default("")
-  defaultWorkItemTypes String   @default("")
-  updatedAt            DateTime @updatedAt
+  schemaVersion Int    @default(1)
+  data          String @db.NVarChar(max) // JSON string
 
-  connection           IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@index([organizationId])
 }

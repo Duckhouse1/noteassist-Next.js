@@ -1,7 +1,7 @@
 // components/TasksDisplayPanel.tsx
 import { DevOpsElement, DevOpsFeature, DevOpsPBI, DevOpsTask } from "@/app/types/OpenAI";
 import { SelectedElementProps, RemoveAction } from "./DevOpsPreBody";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { TypePill } from "./PillHelper";
 import { DevOpsNode } from "./DevOpsNode";
 import { WorkItemType } from "@/app/api/integrations/azure-devops/WorkItem/GetWorkItemTypesByProject/route";
@@ -21,7 +21,9 @@ export const TasksDisplayPanel = ({ elements, onClick, onRemove, onCreateNewElem
 
   /** Scroll container ref */
   const scrollAreaRef = useRef<HTMLDivElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
+  const [openWIT, setOpenWIT] = useState(false)
   /** Selected element info */
   const selectedId = selectedElement?.data.id;
   const selectedType = selectedElement?.type;
@@ -67,10 +69,21 @@ export const TasksDisplayPanel = ({ elements, onClick, onRemove, onCreateNewElem
     });
   }, [selectedDomId]);
 
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!dropdownRef.current) return;
+      if (!dropdownRef.current.contains(e.target as Node)) {
+        setOpenWIT(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   /** Selected card UI */
   const selectedCardClass =
-    "ring-2 ring-blue-500/40 shadow-lg bg-gradient-to-r from-blue-50 to-white border-blue-300 " +
-    "before:content-[''] before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:rounded-l-lg before:bg-blue-500";
+    "ring-1 ring-black shadow-lg bg-gradient-to-r from-gray-200 to-white border-black " +
+    "before:content-[''] before:absolute before:left-0 before:top-0 before:h-full before:w-0.5 before:rounded-l-lg before:bg-gray-600";
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm w-full min-w-0 p-6 flex flex-col min-h-[64vh] max-h-[64vh]">
@@ -79,12 +92,56 @@ export const TasksDisplayPanel = ({ elements, onClick, onRemove, onCreateNewElem
       </h1>
 
       <div className="flex justify-end mb-2">
-        <button
-          className="mr-4 cursor-pointer px-3 py-1.5 text-sm font-medium rounded-md border border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-100 hover:border-blue-300"
-          onClick={() => onCreateNewElementClick("Feature", null)}
-        >
-          + New Feature
-        </button>
+        <div className="relative inline-block" ref={dropdownRef}>
+          <button
+            className="cursor-pointer px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 text-black bg-gray-50 hover:bg-gray-200"
+            onClick={() => setOpenWIT((v) => !v)}
+            type="button"
+          >
+            + Top parent
+          </button>
+
+          {openWIT && (
+            <div
+              className="
+                    absolute top-full left-0 mt-1 w-40
+                    rounded-lg border border-slate-200 bg-white shadow-lg
+                    z-50 overflow-hidden
+                    animate-in fade-in zoom-in-95 duration-100
+                  "
+            >
+              {possibleWIT.length === 0 ? (
+                <div className="px-3 py-2 text-xs text-slate-500">
+                  No work item types
+                </div>
+              ) : (
+                possibleWIT.map((wit) => (
+                  <button
+                    key={wit.referenceName}
+                    type="button"
+                    onClick={() => {
+                      onCreateNewElementClick(wit.name, null);
+                      setOpenWIT(false);
+                    }}
+                    className="
+                          w-full text-left px-3 py-2 text-sm text-slate-700
+                          hover:bg-blue-50 hover:text-blue-700
+                          transition
+                        "
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: `#${wit.color}` }}
+                      />
+                      {wit.name}
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {elements ? (
@@ -105,7 +162,7 @@ export const TasksDisplayPanel = ({ elements, onClick, onRemove, onCreateNewElem
               onCreateNewElementClick={onCreateNewElementClick}
               availableTypes={possibleWIT} />
           ))}
-         
+
         </div>
       ) : (
         <p className="mt-4 text-sm text-slate-600">

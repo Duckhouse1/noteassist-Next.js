@@ -3,31 +3,33 @@
 import { useMemo, useCallback, useState, useEffect, useRef } from "react";
 import { FrontPage } from "./sections/frontPage";
 import ActionsPage from "./sections/ActionsPage";
+import ActionGalleryPage from "./sections/ActionGalleryPage";
 import { ConfigurationPage, DEFAULT_CONFIG, type ConfigState, } from "./sections/ConfigurationPage";
 import { ActionsMockData } from "./components/ActionsMockData";
-import type { Action } from "./sections/frontPage";
 import { CorporateLoader } from "@/app/Components/LoadingIcon";
-import { LoadingContext, NotesContext, OpenAIActionSolutionsMapContext, OrganizationModeContext, UserConfigContext } from "@/app/Contexts";
+import { CurrentSiteContext, LoadingContext, NotesContext, OpenAIActionSolutionsMapContext, OrganizationModeContext, UserConfigContext } from "@/app/Contexts";
 import OpenAIService from "@/app/Services/OpenAIService";
 import { OpenAIResponse } from "@/app/types/OpenAI";
-import MyNotesPage from "./sections/MyNotesPage";
-import Image from "next/image";
+import MyNotesPage, { Note } from "./sections/MyNotesPage";
 import { Toast } from "@/app/Components/Toast";
-import { NavItem } from "@/app/Components/HeaderNavItem";
-import { AzureDevopsSettings } from "./sections/configElements.tsx/AzureDevopsConfig";
-import { OutlookSettings } from "./sections/configElements.tsx/OutlookConfig";
 import { SharePointSettings } from "./sections/configElements.tsx/SharePointConfig";
 import { buildUserConfigString } from "@/lib/Integrations/LLMConfigBuilder";
-import { Header } from "./components/Header";
+import { AzureDevopsSettings } from "@/lib/Integrations/AzureDevops/Configuration";
+import IntegrationsPage from "./sections/IntegrationsPage";
+import { Action, IntegrationConnection } from "@/lib/Integrations/Types";
+import { IntegrationStateContext, IntegrationStateResponse } from "@/app/Contexts/IntegrationStateContext";
+import { AllIntegrationOptions } from "@/lib/Integrations/Catalog";
+import { ProviderConfigItem } from "@/lib/Integrations/ProviderUserConfigs";
+import { WorkspaceConfig } from "@/lib/Integrations/WorkSpaceConfig";
+import { OutlookSettings } from "@/lib/Integrations/Outlook/Configuration";
+import { Header } from "@/app/Components/Header";
+import OrganisationPage from "./sections/OrganizationPage";
 
-export type Pages = "frontpage" | "configurations" | "actions" | "MyNotes" | "Organisations";
+
+export type Pages = "frontpage" | "configurations" | "actions" | "MyNotes" | "Organisations" | "Integrations" | "ActionGallery";
 export type OrganisationMode = "personal" | "company";
 
-export interface IntegrationConnection {
-    id: string;
-    displayName: string;
-    provider: string;
-}
+
 export type MemberShip = "owner" | "admin" | "member"
 
 export type IntegrationConfigItem =
@@ -36,84 +38,56 @@ export type IntegrationConfigItem =
     | { connectionId: string; provider: "sharepoint"; displayName: string; config: SharePointSettings }
     | { connectionId: string; provider: "jira"; displayName: string; config: Record<string, unknown> };
 
-type UserConfigurationsResponse = {
-    configs: IntegrationConfigItem[]
-};
+
 
 export default function DashboardClient({ company, mode, memberShip }: { company: string; mode: OrganisationMode, memberShip: string }) {
     const [selectedActions, setSelectedActions] = useState<Action[]>([]);
     const [currentPage, setCurrentPage] = useState<Pages>("frontpage");
-    const [notes, setNotes] = useState<string>("");
-    const [noteTitle, setNoteTitle] = useState("");
+    const [notes, setNotes] = useState<Note>({ title: "", content: "", id: null });
+    const [integrationState, setIntegrationState] = useState<IntegrationStateResponse | null>(null);
     const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
     const [member] = useState<MemberShip>(memberShip as MemberShip)
     const [config, setConfig] = useState<ConfigState>(DEFAULT_CONFIG);
-    const [userConfigs, setUserConfigs] = useState<IntegrationConfigItem[]>([]);
+    const [userConfigs, setUserConfigs] = useState<ProviderConfigItem[]>([]);
+    const [workspaceConfig, setWorkspaceConfig] = useState<WorkspaceConfig | null>(null);
     const [IntegrationConnections, setIntegrationConnections] = useState<IntegrationConnection[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [actionAISolutions, setActionAISolutions] = useState<Map<string, OpenAIResponse>>(() => new Map());
     const isPersonalOrg = mode === "personal";
 
-    const LoadUserConfigurations = async () => {
+    const LoadIntegrationState = async () => {
         try {
-            const res = await fetch("/api/user/Configurations");
+            const res = await fetch(`/api/user/Integrations/state?org=${encodeURIComponent(company)}`);
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data: UserConfigurationsResponse = await res.json();
-            setUserConfigs(data.configs);
-            setConfig((prev) => applyFetchedConfigsToState(prev, data.configs));
+            const data = (await res.json()) as IntegrationStateResponse;
+
+            setIntegrationState(data);
+
+            // optional: also keep old states in sync for existing code
+            setUserConfigs(data.configs)
+            setIntegrationConnections(data.connections);
+            setWorkspaceConfig(data.workspace.config); // only if you still use userConfigs elsewhere
         } catch (error) {
-            console.log("Error fetching user Configurations: " + error);
+            console.log("Error fetching integration state:", error);
         }
-    }
-
-    function applyFetchedConfigsToState(
-        cfgState: ConfigState,
-        items: IntegrationConfigItem[]
-    ): ConfigState {
-        const next: ConfigState = {
-            ...cfgState,
-            azureDevops: { ...cfgState.azureDevops },
-            outlook: { ...cfgState.outlook },
-            sharePoint: { ...cfgState.sharePoint },
-        };
-
-        for (const item of items) {
-            if (!item.config) continue;
-
-            if (item.provider === "azure-devops") {
-                next.azureDevops[item.connectionId] = item.config;
-            } else if (item.provider === "outlook") {
-                // adjust to match your OutlookSettings type!
-                // (your current DTO differs; update server schema to match OutlookSettings)
-                next.outlook[item.connectionId] = item.config // replace with real mapping
-            } else if (item.provider === "sharepoint") {
-                next.sharePoint[item.connectionId] = item.config;
-            }
-        }
-
-        return next;
-    }
+    };
+ 
     const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
         setToast({ message, type });
         if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
         toastTimeoutRef.current = setTimeout(() => setToast(null), 2000);
     };
     const providerFromIntegration = (integration?: string) => {
-        // normalize your UI labels to provider keys used in userConfigs
         if (!integration) return undefined;
-        switch (integration) {
-            case "Azure-Devops":
-                return "azure-devops";
-            case "jira":
-                return "jira";
-            case "ClickUp":
-                return "clickup";
-            case "outlook":
-                return "outlook";
-            default:
-                return integration.toLowerCase();
-        }
+        const x = integration.trim().toLowerCase();
+
+        if (x === "azure-devops" || x === "azure-devops") return "azure-devops";
+        if (x === "outlook") return "outlook";
+        if (x === "sharepoint") return "sharepoint";
+        if (x === "jira") return "jira";
+
+        return x;
     };
     const onNewActionSelected = (action: Action) => {
         const provider = providerFromIntegration(action.integration);
@@ -124,26 +98,25 @@ export default function DashboardClient({ company, mode, memberShip }: { company
 
         setSelectedActions((prev) => {
             const match = (a: Action) => a.key === action.key && a.integration === action.integration;
-
             const exists = prev.some(match);
 
             if (exists) {
                 // toggle off
                 return prev.filter((a) => !match(a));
             }
-
             // toggle on + attach UserConfig
             const actionWithConfig: Action = {
                 ...action,
                 UserConfig: userConfigString, // string | undefined is fine
             };
-
+            console.log("new action");
+            console.log(actionWithConfig);
             return [...prev, actionWithConfig];
         });
     };
 
     const SaveNote = async () => {
-        if (noteTitle.trim() === "") {
+        if (notes && notes.title?.trim() === "") {
             showToast("Please enter a title before saving.", "error");
             return;
         }
@@ -151,7 +124,7 @@ export default function DashboardClient({ company, mode, memberShip }: { company
             const response = await fetch("/api/notes", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text: notes, company, title: noteTitle }),
+                body: JSON.stringify({ text: notes.content, company, title: notes.title }),
             });
             if (!response.ok) {
                 showToast("Failed to save note. Please try again.", "error");
@@ -173,14 +146,7 @@ export default function DashboardClient({ company, mode, memberShip }: { company
     useEffect(() => {
         const run = async () => {
             try {
-                const res = await fetch("/api/user/IntegrationConnections");
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-                const connections: IntegrationConnection[] = await res.json();
-                setIntegrationConnections(connections);
-
-                // call with the freshly fetched data (not stale state)
-                await LoadUserConfigurations();
+                await LoadIntegrationState()
             } catch (err) {
                 console.log("Error fetching IntegrationConnections:", err);
             }
@@ -199,9 +165,11 @@ export default function DashboardClient({ company, mode, memberShip }: { company
 
     const goToActionsPageClickHandler = () => {
         setIsLoading(true);
+        console.log(selectedActions);
+        if (!notes?.content) return
         Promise.all(
             selectedActions.map((action) =>
-                OpenAIService.extractInfoBasedOnAction(notes, action).then((response) => ({ action, response }))
+                OpenAIService.extractInfoBasedOnAction(notes?.content, action).then((response) => ({ action, response }))
             )
         )
             .then((results) => {
@@ -213,6 +181,8 @@ export default function DashboardClient({ company, mode, memberShip }: { company
                         responseMap.set(action.key, response);
                     }
                 });
+                console.log("Reponse map");
+                console.log(responseMap);
                 setActionAISolutions(responseMap);
                 setIsLoading(false);
                 setCurrentPage("actions");
@@ -224,17 +194,33 @@ export default function DashboardClient({ company, mode, memberShip }: { company
     };
 
     const availableActions = useMemo(() => {
-        return ActionsMockData.filter((action) => {
-            if (action.key === "integrations") {
-                return (
-                    config.enabledActions.integrations &&
-                    !!action.integration &&
-                    config.enabledProviders.includes(action.integration)
-                );
+        console.log("Fetcher available actions");
+        const ws = integrationState?.workspace?.config;
+        if (!ws) return [];
+        console.log("Her er ws: ");
+        console.log(ws);
+        const result: Action[] = [];
+
+        for (const card of AllIntegrationOptions) {
+            // provider må være enabled
+            if (!ws.enabledProviders.includes(card.providerId)) continue;
+
+            const enabledMap = ws.enabledActions?.[card.providerId] ?? {};
+
+            for (const a of card.actions) {
+                console.log("action");
+                console.log(a);
+                // action må være enabled (default true hvis ikke findes)
+                const isEnabled = enabledMap[a.key] !== false;
+                if (!isEnabled) continue;
+
+                // Push action metadata (fra catalog)
+                result.push(a);
             }
-            return config.enabledActions[action.key];
-        });
-    }, [config]);
+        }
+        console.log(result);
+        return result;
+    }, [integrationState]);;
 
     return (
         <OpenAIActionSolutionsMapContext.Provider
@@ -246,7 +232,6 @@ export default function DashboardClient({ company, mode, memberShip }: { company
                     type={toast?.type ?? "info"}
                     onClose={() => setToast(null)}
                 />
-
                 {/* Header */}
                 <Header
                     company={company}
@@ -255,67 +240,87 @@ export default function DashboardClient({ company, mode, memberShip }: { company
                     isPersonalOrg={isPersonalOrg}
                     member={member}
                 />
-                <LoadingContext.Provider value={{ isLoading, setIsLoading }}>
-                    <OrganizationModeContext.Provider value={{ mode }}>
-                        <UserConfigContext.Provider value={{ configs: userConfigs }}>
-                            <NotesContext.Provider value={{ notes, setNotes }}>
-                                {isLoading && (
-                                    <CorporateLoader
-                                        size={220}
-                                        className="absolute inset-0 z-50 m-auto"
-                                        title="Mapping notes into actions"
-                                    />
-                                )}
+                <IntegrationStateContext.Provider value={{ integrationState, setIntegrationState }}>
 
-                                {!isLoading && currentPage === "frontpage" && (
-                                    <div className="h-full overflow-auto">
-                                        <FrontPage
-                                            company={company}
-                                            setCurrentPage={setCurrentPage}
-                                            selectedActions={selectedActions}
-                                            setSelectedActions={(action) => onNewActionSelected(action)}
-                                            actions={availableActions}
-                                            notes={notes}
-                                            setNotes={setNotes}
-                                            NoteTitle={noteTitle}
-                                            setNoteTitle={setNoteTitle}
-                                            showToast={toast != null}
-                                            onSaveNote={SaveNote}
-                                            onGoToActionsPageClick={goToActionsPageClickHandler}
-                                        />
-                                    </div>
-                                )}
+                    <LoadingContext.Provider value={{ isLoading, setIsLoading }}>
+                        <OrganizationModeContext.Provider value={{ mode }}>
+                            <UserConfigContext.Provider value={{ configs: userConfigs, setConfigs: setUserConfigs }}>
+                                <NotesContext.Provider value={{ notes, setNotes }}>
+                                    <CurrentSiteContext.Provider value={{ currentPage, setCurrentPage }}>
+                                        {isLoading && (
+                                            <CorporateLoader
+                                                size={220}
+                                                className="absolute inset-0 z-50 m-auto"
+                                                title="Mapping notes into actions"
+                                            />
+                                        )}
 
-                                {currentPage === "configurations" && (
-                                    <div className="h-full overflow-auto">
-                                        <ConfigurationPage
-                                            value={config}
-                                            connections={IntegrationConnections}
-                                            onChange={setConfig}
-                                            company={company}
-                                            onSave={(cfg) => {
-                                                console.log("save config", cfg);
-                                            }}
-                                        />
-                                    </div>
-                                )}
+                                        {!isLoading && currentPage === "frontpage" && (
+                                            <div className="h-full overflow-auto">
+                                                <FrontPage
+                                                    company={company}
+                                                    setCurrentPage={setCurrentPage}
+                                                    selectedActions={selectedActions}
+                                                    notes={notes}
+                                                    setNotes={setNotes}
+                                                    setNoteTitle={(value) => {
+                                                        setNotes(prev => ({
+                                                            ...prev,
+                                                            title: value
+                                                        }))
+                                                    }}
+                                                    showToast={toast != null}
+                                                    onSaveNote={SaveNote}
+                                                    onGoToActionsGallery={() => setCurrentPage("ActionGallery")}
+                                                    selectedCount={selectedActions.length}
+                                                    onGoToActionsPageClick={goToActionsPageClickHandler}
+                                                />
+                                            </div>
+                                        )}
 
-                                {currentPage === "actions" && (
-                                    <ActionsPage
-                                        selectedActions={selectedActions}
-                                        onGoToFrontPage={() => {
-                                            setCurrentPage("frontpage");
-                                            setSelectedActions([]);
-                                            setNotes("");
-                                        }}
-                                    />
-                                )}
+                                        {!isLoading && currentPage === "ActionGallery" && (
+                                            <div className="h-full overflow-x-hidden">
+                                                <ActionGalleryPage
+                                                    actions={availableActions}
+                                                    selectedActions={selectedActions}
+                                                    setSelectedActions={(action) => onNewActionSelected(action)}
+                                                    onGoBack={() => setCurrentPage("frontpage")}
+                                                    onProcessNote={goToActionsPageClickHandler}
+                                                    setCurrentPage={setCurrentPage}
+                                                />
+                                            </div>
+                                        )}
 
-                                {currentPage === "MyNotes" && <MyNotesPage />}
-                            </NotesContext.Provider>
-                        </UserConfigContext.Provider>
-                    </OrganizationModeContext.Provider>
-                </LoadingContext.Provider>
+                                        {currentPage === "configurations" && (
+                                            <ConfigurationPage company={company} />
+                                        )}
+
+                                        {currentPage === "actions" && (
+                                            <ActionsPage
+                                                selectedActions={selectedActions}
+                                                onGoToFrontPage={() => {
+                                                    setCurrentPage("frontpage");
+                                                    setSelectedActions([]);
+                                                    setNotes({ title: "", content: "", id: null });
+                                                }}
+                                            />
+                                        )}
+
+                                        {currentPage === "Integrations" && (
+                                            <IntegrationsPage company={company} />
+                                        )}
+
+                                        {currentPage === "Organisations" && (
+                                            <OrganisationPage company={company} />
+                                        )}
+
+                                        {currentPage === "MyNotes" && <MyNotesPage />}
+                                    </CurrentSiteContext.Provider>
+                                </NotesContext.Provider>
+                            </UserConfigContext.Provider>
+                        </OrganizationModeContext.Provider>
+                    </LoadingContext.Provider>
+                </IntegrationStateContext.Provider>
             </main>
         </OpenAIActionSolutionsMapContext.Provider>
     );

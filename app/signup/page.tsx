@@ -66,7 +66,7 @@ export default function SignUpPage() {
         <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-800">
+              {/* <label className="block text-sm font-medium text-gray-800">
                 First name:
               </label>
               <input type="text" required value={firstName}
@@ -81,7 +81,7 @@ export default function SignUpPage() {
                 onChange={(e) => setLastName(e.target.value)}
                 placeholder="Andersen"
                 className="mt-2 block w-full rounded-xl border border-gray-200 px-4 py-3 shadow-sm focus:border-indigo-300 focus:ring-4 focus:ring-indigo-100 outline-none"
-              />
+              /> */}
               <label className="block text-sm font-medium text-gray-800">
                 Email
               </label>
@@ -130,7 +130,7 @@ export default function SignUpPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50 focus:outline-none focus:ring-4 focus:ring-indigo-200"
+              className="cursor-pointer w-full rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-700 disabled:opacity-50 focus:outline-none focus:ring-4 focus:ring-indigo-200"
             >
               {isSubmitting ? "Creating account…" : "Create account"}
             </button>

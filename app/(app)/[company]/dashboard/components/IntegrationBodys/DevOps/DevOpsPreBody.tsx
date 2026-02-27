@@ -1,13 +1,11 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import FetchService from "@/app/Services/DevOpsServices/Fetchservice";
-import { Assignee, DevOpsElement, DevOpsFeature, DevOpsPBI, DevOpsResponse, DevOpsTask } from "@/app/types/OpenAI";
+import { Assignee, DevOpsElement, DevOpsFeature, DevOpsPBI, DevOpsTask } from "@/app/types/OpenAI";
 import { DevOpsTaskTypes, TasksDisplayPanel } from "./TaskDisplayPanel";
-import { CreateDevopsElementModal } from "./CreateFeatureModal";
-import { OpenAIActionSolutionsMapContext, ShowNotesBodyContext, UserConfigContext } from "@/app/Contexts";
+import { OpenAIActionSolutionsMapContext, UserConfigContext } from "@/app/Contexts";
 import { DevOpsTasksInfoPanel } from "./TasksInfoPanel";
 import { useSessionStorageState } from "@/app/Components/Hooks/useSessionStorage";
 import { AzureDevOpsMark } from "@/app/Components/Icons/AzureDevops";
-import { defaultConfig } from "next/dist/server/config-shared";
 import { WorkItemType } from "@/app/api/integrations/azure-devops/WorkItem/GetWorkItemTypesByProject/route";
 
 
@@ -53,7 +51,7 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
     const { OpenAISolutionsMap, setOpenAISolutionsMap } = useContext(OpenAIActionSolutionsMapContext);
     const [selectedProject, setSelectedProject] = useState<DevOpsProjectsProps | null>(null);
     const { configs } = useContext(UserConfigContext)
-
+ 
 
     const [teams, setTeams] = useState<DevOpsTeamsProps[]>([]);
 
@@ -62,8 +60,7 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
     const saved = OpenAISolutionsMap.get(integrationKey);
     const savedElements =
         saved?.type === "devops_tasks" ? saved.content.elements : [];
-    console.log("saved features");
-    console.log(savedElements);
+   
     const projectId = selectedElement?.data.Project?.id ? selectedElement?.data.Project?.id : savedElements[0]?.Project?.id ?? selectedProject?.id ?? "";
     const { value: projects, setValue: setProjects } = useSessionStorageState<DevOpsProjectsProps[]>({
         key: `devops:projects:${integrationKey}`,
@@ -101,8 +98,10 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
     const defaultProjectId = (configs.find(c => c.provider === "azure-devops")?.config.defaultProject ?? "").trim();
     const defaultProject = projects.find(p => p.id.trim().toLowerCase() === defaultProjectId.trim().toLowerCase()) ?? null;
 
-    console.log("Default project id: ");
-    console.log(defaultProjectId);
+    // console.log("Default project id: ");
+    // console.log(defaultProjectId);
+    // console.log("And whole project: ");
+    // console.log(defaultProject);
     const [creatingElement, setCreatingElement] = useState<{
         type: DevOpsTaskTypes;
         parentId: string | null;
@@ -209,8 +208,8 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
 
                     const data = await res.json();
 
-                    console.log("All WIT:");
-                    console.log(data);
+                    // console.log("All WIT:");
+                    // console.log(data);
 
                     SetAllWorkItemTypes(data.types);
                     if (found) {
@@ -291,8 +290,8 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
         (async () => {
             try {
                 const TeamMembers = await FetchService.FetchAllTeamMembersByProjectID(selectedProject.id)
-                console.log("Team members:");
-                console.log(TeamMembers);
+                // console.log("Team members:");
+                // console.log(TeamMembers);
                 setAssignees(TeamMembers)
             } catch (error) {
                 console.log("Erroe fetching TeamMembers: " + error);
@@ -369,10 +368,10 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
 
         setElements(prev => updateNodeById(prev, id, patch));
     };
-    useEffect(() => {
-        console.log("Selected element:");
-        console.log(selectedElement);
-    }, [selectedElement])
+    // useEffect(() => {
+    //     console.log("Selected element:");
+    //     console.log(selectedElement);
+    // }, [selectedElement])
 
 
     const onProjectsChange = async (selectedProjectID: string) => {

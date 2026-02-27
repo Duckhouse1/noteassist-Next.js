@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getToken } from "next-auth/jwt";
-import { IntegrationOptionsTitle } from "@/app/(app)/[company]/dashboard/sections/ConfigurationPage";
+import { ProviderId } from "@/lib/Integrations/Types";
 
 function base64url(input: Buffer) {
   return input
@@ -23,11 +23,11 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const providerParam = url.searchParams.get("provider");
 
-  const ALLOWED_PROVIDERS = new Set<IntegrationOptionsTitle>([
-    "Azure-Devops", "Outlook", "SharePoint"
+  const ALLOWED_PROVIDERS = new Set<ProviderId>([
+    "azure-devops", "outlook", "sharepoint"
   ]);
 
-  if (!providerParam || !ALLOWED_PROVIDERS.has(providerParam as IntegrationOptionsTitle)) {
+  if (!providerParam || !ALLOWED_PROVIDERS.has(providerParam as ProviderId)) {
     return NextResponse.json({ error: "Invalid provider" }, { status: 400 });
   }
 

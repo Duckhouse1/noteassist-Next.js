@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { Pages } from "../dashboardClient";
+import { NavItem } from "@/app/Components/HeaderNavItem";
+import { Pages } from "../(app)/[company]/dashboard/dashboardClient";
 
 
 type HeaderProps = {
@@ -12,26 +13,7 @@ type HeaderProps = {
   member?: string; // e.g. "owner"
 };
 
-type NavItemProps = {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-};
 
-const NavItem = ({ label, active, onClick }: NavItemProps) => {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={[
-        "text-sm font-medium transition-colors",
-        active ? "text-slate-900" : "text-slate-500 hover:text-slate-900",
-      ].join(" ")}
-    >
-      {label}
-    </button>
-  );
-};
 
 export const Header = ({
   company,
@@ -40,12 +22,15 @@ export const Header = ({
   isPersonalOrg,
   member,
 }: HeaderProps) => {
+  // ActionGallery is part of the note flow, so "Note" tab should stay active
+  const isNoteFlow = currentPage === "frontpage" || currentPage === "ActionGallery";
+
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-slate-200/80">
-      <div className="w-full 2xl:max-w-[1550px] px-4 sm:px-6 lg:px-8 ml-4">
-        <div className="flex h-14 justify-between">
+      {/* <div className="mx-auto w-full max-w-[1550px] px-4 sm:px-6 lg:px-8 border-2"> */}
+        <div className="relative flex h-14 items-center px-8">
           {/* Left: logo + brand */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 justify-start justify-self-start">
             <button
               type="button"
               onClick={() => setCurrentPage("frontpage")}
@@ -67,42 +52,51 @@ export const Header = ({
                 )}
               </div>
             </button>
-
-            {/* Divider */}
-            <div className="ml-3 h-5 w-px bg-slate-200" />
-
             {/* Nav links */}
-            <nav className="flex items-center gap-5 ml-2">
+          </div>
+          <nav className="absolute left-1/2 -translate-x-1/2 flex items-center divide-x divide-slate-400">
+            <div className="px-5">
               <NavItem
                 label="Note"
-                active={currentPage === "frontpage"}
+                active={isNoteFlow}
                 onClick={() => setCurrentPage("frontpage")}
               />
+            </div>
+
+            <div className="px-5">
               <NavItem
                 label="My Notes"
                 active={currentPage === "MyNotes"}
                 onClick={() => setCurrentPage("MyNotes")}
               />
-              {member === "owner" && (
+            </div>
+            <div className="px-5">
+              <NavItem
+                label="Integrations"
+                active={currentPage === "Integrations"}
+                onClick={() => setCurrentPage("Integrations")}
+              />
+            </div>
+            {member === "owner" && (
+              <div className="px-5">
                 <NavItem
-                  label="Organisation"
+                  label="Organization"
                   active={currentPage === "Organisations"}
                   onClick={() => setCurrentPage("Organisations")}
                 />
-              )}
-            </nav>
-          </div>
-
+              </div>
+            )}
+          </nav>
           {/* Right: settings + avatar */}
-          <div className="flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-3">
             <button
               type="button"
               onClick={() => setCurrentPage("configurations")}
               className={[
-                "cursor-pointer inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all focus:outline-none",
+                "cursor-pointer  inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all focus:outline-none",
                 currentPage === "configurations"
-                  ? "border-[#1E3A5F] bg-[#1E3A5F] text-white"
-                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900",
+                  ? "border-black bg-black text-white"
+                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900 hover:bg-gray-50",
               ].join(" ")}
             >
               <svg
@@ -125,7 +119,7 @@ export const Header = ({
             <div className="h-8 w-8 rounded-full bg-gradient-to-br from-slate-300 to-slate-400 ring-2 ring-white" />
           </div>
         </div>
-      </div>
+      {/* </div> */}
     </header>
   );
 };

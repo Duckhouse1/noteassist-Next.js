@@ -1,24 +1,21 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Action } from "./frontPage";
 import { CorporateLoader } from "@/app/Components/LoadingIcon";
-// import { Pages } from "../dashboardClient";
 import { ActionsBody } from "../components/ActionsBody";
-import { OpenAIResponse } from "@/app/types/OpenAI";
-import { NotesBody } from "../components/NotesBody";
-import { ShowNotesBodyContext } from "@/app/Contexts";
-
-
+import { ActionExecutionContext, ShowNotesBodyContext } from "@/app/Contexts";
+import { Action } from "@/lib/Integrations/Types";
 
 
 export default function ActionsPage({ selectedActions, onGoToFrontPage }: { selectedActions: Action[]; onGoToFrontPage: () => void; }) {
     const total = selectedActions.length;
 
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [isLoading, setIsLoading] = useState(false);
 
-    // track completion by index (your current approach)
+    // track which action index is currently executing
+    const [executingIndex, setExecutingIndex] = useState<number | null>(null);
+
+    // track completion by index
     const [completedActions, setCompletedActions] = useState<number[]>([]);
     const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
@@ -28,12 +25,6 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
         return selectedActions[currentIndex];
     }, [selectedActions, currentIndex]);
 
-    // useEffect(() => {
-    //     if (completedActions.length === total && total > 0) {
-    //         setStatusMessage("All actions completed! 🎉");
-    //     }
-    // }, [completedActions, total]);
-    // If no actions selected
     if (total === 0) {
         return (
             <div className="mx-auto max-w-6xl px-6 py-10">
@@ -69,15 +60,29 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
         });
     }
 
-    async function runCurrentAction(currentAction: Action) {
-        setIsLoading(true);
-
-        setTimeout(() => {
-            setIsLoading(false);
-            markCompleted(currentIndex);
-            goNext();
-        }, 2000);
+    // Called by the child (IntegrationBody) via context
+    async function executeCurrentAction() {
+        setExecutingIndex(currentIndex);
+        // The actual API call happens inside IntegrationBody.
+        // This wrapper just manages the step-circle / loading chrome.
     }
+
+    // Called by the child after its own fetch completes
+    function finishCurrentAction() {
+        markCompleted(currentIndex);
+        setExecutingIndex(null);
+
+        // auto-advance if not on the last step
+        if (currentIndex < total - 1) {
+            goNext();
+        } else {
+            setStatusMessage("✅ All actions completed!");
+        }
+    }
+
+    // Derived booleans for the current action
+    const isCurrentExecuting = executingIndex === currentIndex;
+    const isCurrentCompleted = completedActions.includes(currentIndex);
 
 
     return (
@@ -100,6 +105,7 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
                         {selectedActions.map((_, i) => {
                             const isActive = i === currentIndex;
                             const isDone = completedActions.includes(i);
+                            const isExecuting = executingIndex === i;
 
                             return (
                                 <div key={i} className="flex items-center gap-2">
@@ -110,19 +116,28 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
                                             // setStatusMessage(null);
                                             setCurrentIndex(i);
                                         }}
+                                        disabled={isExecuting}
                                         className={[
                                             "flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition",
-                                            isActive
-                                                ? "bg-blue-900 text-white shadow-sm ring-4 ring-blue-100"
-                                                : isDone
-                                                    ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-100"
-                                                    : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50",
+                                            isExecuting
+                                                ? "bg-amber-50 text-amber-600 ring-2 ring-amber-300 animate-pulse"
+                                                : isActive
+                                                    ? "bg-black text-white shadow-sm ring-4 ring-blue-100"
+                                                    : isDone
+                                                        ? "bg-emerald-100 text-emerald-700 ring-2 ring-emerald-300 hover:bg-emerald-200"
+                                                        : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50",
                                         ].join(" ")}
                                         aria-current={isActive ? "step" : undefined}
-                                        aria-label={isDone ? `Step ${i + 1} completed` : `Step ${i + 1}`}
+                                        aria-label={isDone ? `Step ${i + 1} completed` : isExecuting ? `Step ${i + 1} executing` : `Step ${i + 1}`}
                                     >
-                                        {isDone ? (
-                                            // ✅ Checkmark instead of number
+                                        {isExecuting ? (
+                                            // Spinner
+                                            <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" className="opacity-25" />
+                                                <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                                            </svg>
+                                        ) : isDone ? (
+                                            // ✅ Checkmark
                                             <svg
                                                 className="h-5 w-5"
                                                 viewBox="0 0 24 24"
@@ -132,7 +147,7 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
                                                 <path
                                                     d="M20 6L9 17l-5-5"
                                                     stroke="currentColor"
-                                                    strokeWidth="2"
+                                                    strokeWidth="2.5"
                                                     strokeLinecap="round"
                                                     strokeLinejoin="round"
                                                 />
@@ -181,16 +196,18 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
 
             )}
 
-            {/* Loader */}
-            {isLoading && (
-                <CorporateLoader
-                    size={220}
-                    className="absolute inset-0 z-50 m-auto"
-                    title={`Executing: ${currentAction.createText}`}
-                />
+            {/* Loader overlay when executing */}
+            {isCurrentExecuting && (
+                <div className="mt-6 flex items-center justify-center">
+                    <CorporateLoader
+                        size={220}
+                        className=""
+                        title={`Executing: ${currentAction.createText}`}
+                    />
+                </div>
             )}
 
-            {!isLoading && (
+            {!isCurrentExecuting && (
                 <>
                     <div className="mt-1 w-full rounded-2xl border border-slate-200 bg-white
                 pt-3 pb-3 px-6 sm:px-8 shadow-sm">
@@ -201,7 +218,7 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
                                     className={[
                                         "px-5 py-2 text-sm font-semibold rounded-lg transition-all duration-200",
                                         showNotes
-                                            ? "bg-blue-900 text-white shadow ring-1 ring-blue-900/20"
+                                            ? "bg-black text-white shadow ring-1 ring-blue-900/20"
                                             : "text-slate-500 hover:text-slate-700"
                                     ].join(" ")}
                                 >
@@ -213,7 +230,7 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
                                     className={[
                                         "px-5 py-2 text-sm font-semibold rounded-lg transition-all duration-200",
                                         !showNotes
-                                            ? "bg-blue-900 text-white shadow ring-1 ring-blue-900/20"
+                                            ? "bg-black text-white shadow ring-1 ring-blue-900/20"
                                             : "text-slate-500 hover:text-slate-700"
                                     ].join(" ")}
                                 >
@@ -222,7 +239,18 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
                             </div>
                         </div>
                         <ShowNotesBodyContext.Provider value={{ show: showNotes, setShowNoteBody: setShowNotes }}>
-                            <ActionsBody action={currentAction} />
+                            <ActionExecutionContext.Provider value={{
+                                isExecuting: isCurrentExecuting,
+                                isCompleted: isCurrentCompleted,
+                                executeAction: async () => {
+                                    executeCurrentAction();
+                                },
+                            }}>
+                                <ActionsBody
+                                    action={currentAction}
+                                    onActionComplete={finishCurrentAction}
+                                />
+                            </ActionExecutionContext.Provider>
                         </ShowNotesBodyContext.Provider>
                     </div>
 

@@ -101,7 +101,7 @@ export const DevOpsNode = ({ node, indexLabel, depth = 0, selectedCardClass, isS
                         <button
                             type="button"
                             onClick={() => setOpenWIT((v) => !v)}
-                            className="px-2.5 py-1 text-xs font-medium rounded-md border border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-100 hover:border-blue-300"
+                            className="px-2.5 py-1 text-xs font-medium rounded-md border border-gray-300 text-black bg-gray-50 hover:bg-gray-200"
                         >
                             + Add
                         </button>

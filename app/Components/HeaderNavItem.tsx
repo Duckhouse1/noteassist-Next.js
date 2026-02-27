@@ -10,10 +10,10 @@ export const NavItem = ({
     <button
         onClick={onClick}
         className={[
-            " cursor-pointer relative px-1 py-1 text-sm font-medium transition-colors",
+            "cursor-pointer relative px-1 py-1 text-sm font-medium transition-colors tracking-wider",
             active
                 ? "text-[#1E3A5F]"
-                : "text-slate-500 hover:text-slate-800",
+                : "text-slate-500 hover:text-black",
         ].join(" ")}
     >
         {label}

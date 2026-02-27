@@ -1,5 +1,5 @@
-import { decrypt, encrypt } from "../cryptation";
-import { prisma } from "../prisma";
+import { decrypt, encrypt } from "../../cryptation";
+import { prisma } from "../../prisma";
 import { IntegrationConnection } from "@prisma/client";
 
 export async function refreshAccessToken(conn: Partial<IntegrationConnection>) {

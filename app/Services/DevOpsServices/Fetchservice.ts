@@ -49,8 +49,8 @@ const FetchDevOpsProjects = async (): Promise<DevOpsProjectsProps[]> => {
     }
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  console.log("Dette er projekterne: ");
-  console.log(res);
+  // console.log("Dette er projekterne: ");
+  // console.log(res);
   const data = (await res.json()) as DevOpsProjectsReturnProps;
   return data.value;
 };

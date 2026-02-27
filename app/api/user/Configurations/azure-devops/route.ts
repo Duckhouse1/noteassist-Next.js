@@ -2,121 +2,116 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-export function csvToArray(csv: unknown): string[] {
-  if (typeof csv !== "string") return [];
-  return csv
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+import { AzureDevopsConfigSchema } from "@/lib/ConfigSchemas";
+import type { AzureDevopsSettings } from "@/lib/Integrations/AzureDevops/Configuration";
+
+type AdoProvider = "azure-devops";
+
+function safeJsonParse(input: string | null | undefined): unknown {
+  if (!input) return {};
+  try {
+    return JSON.parse(input);
+  } catch {
+    return {};
+  }
 }
 
-export function arrayToCsv(arr: unknown): string {
-  if (!Array.isArray(arr)) return "";
-  const clean = arr
-    .filter((x): x is string => typeof x === "string")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  // de-dupe
-  return Array.from(new Set(clean)).join(",");
-}
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
-
-  if (!session?.user?.email || !session.user.id) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { searchParams } = new URL(req.url);
   const connectionId = searchParams.get("connectionId");
-
   if (!connectionId) {
     return NextResponse.json({ error: "connectionId is required" }, { status: 400 });
   }
 
-  const config = await prisma.azureDevopsConfig.findUnique({
-    where: { connectionId },
-    select: {
-      connectionId: true,
-      defaultOrganization: true,
-      defaultProject: true,
-      defaultWorkItemTypes: true,
-      connection: {
-        select: {
-          userId: true, // only what you need for the auth check
-        },
-      },
-    },
+  // Ensure the connection belongs to the user
+  const connection = await prisma.integrationConnection.findUnique({
+    where: { id: connectionId },
+    select: { id: true, userId: true, provider: true },
   });
 
-  if (!config) {
-    return NextResponse.json({ error: "Config not found" }, { status: 404 });
+  if (!connection) {
+    return NextResponse.json({ error: "Connection not found" }, { status: 404 });
   }
-
-  // Make sure the config belongs to the requesting user
-  if (config.connection.userId !== session.user.id) {
+  if (connection.userId !== session.user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  return NextResponse.json({
-    defaultOrganization: config.defaultOrganization ?? "",
-    defaultProject: config.defaultProject ?? "",
-    defaultWorkItemTypes: csvToArray(config.defaultWorkItemTypes),
+  // Optional: enforce this endpoint is only for ADO connections
+  const provider = connection.provider.trim().toLowerCase();
+  if (provider !== "azure-devops" && provider !== "azuredevops") {
+    return NextResponse.json({ error: "Not an Azure DevOps connection" }, { status: 400 });
+  }
+
+  // Fetch generic config row for this connection
+  const row = await prisma.integrationConfig.findUnique({
+    where: { connectionId },
+    select: { data: true },
   });
+
+  // Parse + validate with defaults
+  const raw = safeJsonParse(row?.data);
+  const cfg: AzureDevopsSettings = AzureDevopsConfigSchema.parse(raw);
+
+  return NextResponse.json(cfg);
 }
 
-
-export async function POST(req: Request) {
+export async function PUT(req: Request) {
   const session = await getServerSession(authOptions);
-
-  if (!session?.user?.email || !session.user.id) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
-  const { ADOSettings } = body;
-  console.log("dette er settings:");
-  console.log(ADOSettings);
   const { searchParams } = new URL(req.url);
   const connectionId = searchParams.get("connectionId");
-
-  if (!connectionId || !ADOSettings) {
-    return NextResponse.json({ error: "connectionId and ADOCnfig is required" }, { status: 400 });
+  if (!connectionId) {
+    return NextResponse.json({ error: "connectionId is required" }, { status: 400 });
   }
 
-  // Verify ownership
+  // Ensure the connection belongs to the user
   const connection = await prisma.integrationConnection.findUnique({
     where: { id: connectionId },
+    select: { id: true, userId: true, provider: true },
   });
 
-  if (!connection || connection.userId !== session.user.id) {
+  if (!connection) {
+    return NextResponse.json({ error: "Connection not found" }, { status: 404 });
+  }
+  if (connection.userId !== session.user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  const witCsv = arrayToCsv(ADOSettings.defaultWorkItemTypes);
-  const config = await prisma.azureDevopsConfig.upsert({
+
+  const providerNormalized: AdoProvider = "azure-devops";
+
+  // Body can be either { ADOSettings: {...} } (old) or directly the config (new)
+  const body: unknown = await req.json();
+
+  const maybeWrapped = body as { ADOSettings?: unknown };
+  const rawConfig: unknown = maybeWrapped?.ADOSettings ?? body;
+
+  // Validate + apply defaults
+  const parsed: AzureDevopsSettings = AzureDevopsConfigSchema.parse(rawConfig);
+
+  // Upsert into IntegrationConfig
+  const saved = await prisma.integrationConfig.upsert({
     where: { connectionId },
-    update: {
-      defaultOrganization: ADOSettings.Defaultorganization ?? "",
-      defaultProject: ADOSettings.Defaultproject ?? "",
-      defaultWorkItemTypes: witCsv, // ✅ add
-    },
     create: {
-      defaultOrganization: ADOSettings.Defaultorganization ?? "",
-      defaultProject: ADOSettings.Defaultproject ?? "",
-      defaultWorkItemTypes: witCsv, // ✅ add
-      connection: {
-        connect: { id: connectionId },
-      },
+      connectionId,
+      provider: providerNormalized,
+      data: JSON.stringify(parsed),
+      schemaVersion: 1,
     },
-    select: {
-      defaultOrganization: true,
-      defaultProject: true,
-      defaultWorkItemTypes: true,
+    update: {
+      provider: providerNormalized,
+      data: JSON.stringify(parsed),
     },
+    select: { data: true },
   });
-  return NextResponse.json({
-    defaultOrganization: config.defaultOrganization ?? "",
-    defaultProject: config.defaultProject ?? "",
-    defaultWorkItemTypes: csvToArray(config.defaultWorkItemTypes),
-  });
+
+  const cfg: AzureDevopsSettings = AzureDevopsConfigSchema.parse(safeJsonParse(saved.data));
+  return NextResponse.json(cfg);
 }
