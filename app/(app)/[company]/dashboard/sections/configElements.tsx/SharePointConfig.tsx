@@ -1,6 +1,7 @@
 "use client";
 
-import { IntegrationConnection } from "../../dashboardClient";
+import { IntegrationConnection } from "@/lib/Integrations/Types";
+
 
 /* ───────────────── Types ───────────────── */
 

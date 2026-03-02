@@ -3,14 +3,15 @@ import { prisma } from "@/lib/prisma";
 import { ProviderOptions } from "../connect/route";
 import { encrypt } from "@/lib/cryptation";
 import { IntegrationOptionsTitle } from "@/lib/Integrations/Types";
+import { ProviderId } from "@/lib/Integrations/ProviderUserConfigs";
 
 
-export const displayNameByProvider: Record<IntegrationOptionsTitle, string> = {
-    Outlook: "Microsoft Outlook",
-    "Azure-Devops": "Azure Devops",
-    SharePoint: "SharePoint",
-    Jira: "Jira",
-    Notion: ""
+export const displayNameByProvider: Record<ProviderId, string> = {
+    outlook: "Microsoft Outlook",
+    "azure-devops": "Azure Devops",
+    sharepoint: "SharePoint",
+    jira: "Jira",
+    clickup: "Click Up"
 };
 
 async function exchangeCodeForToken(params: {
@@ -73,7 +74,7 @@ export async function GET(req: NextRequest) {
         state: string;
         codeVerifier: string;
         userId: string;
-        provider: IntegrationOptionsTitle;
+        provider: ProviderId;
         organizationId: string;
         returnTo: string;
         createdAt: number;
@@ -100,7 +101,7 @@ export async function GET(req: NextRequest) {
     const redirectUri = `${process.env.NEXTAUTH_URL}/api/integrations/microsoft-graph/callback`;
     const provider = payload.provider;
     const providerDisplayName = displayNameByProvider[provider]
-    const scope = provider === "SharePoint" ?
+    const scope = provider === "sharepoint" ?
     [
       "Sites.ReadWrite.All",
       "offline_access",

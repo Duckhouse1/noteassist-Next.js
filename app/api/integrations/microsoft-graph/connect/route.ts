@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getToken } from "next-auth/jwt";
-import { ProviderId } from "@/lib/Integrations/Types";
+import { ProviderId } from "@/lib/Integrations/ProviderUserConfigs";
 
 function base64url(input: Buffer) {
   return input

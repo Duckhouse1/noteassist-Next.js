@@ -1,5 +1,5 @@
+import { Action } from "@/lib/Integrations/Types";
 
-import { Action } from "../sections/frontPage";
 
 export const ActionsMockData: Action[] = [
     // ─────────────────────────────
@@ -10,7 +10,7 @@ export const ActionsMockData: Action[] = [
         title: "Integrate with Azure DevOps",
         description:
             "Push notes, tasks, and decisions directly into Azure DevOps.",
-        integration: "Azure-Devops",
+        integration: "azure-devops",
         createText: "Create in Azure DevOps",
     },
     // {

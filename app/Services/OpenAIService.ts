@@ -1,4 +1,4 @@
-import { Action } from "../(app)/[company]/dashboard/sections/frontPage";
+import { Action } from "@/lib/Integrations/Types";
 import { OpenAIResponse } from "../types/OpenAI";
 
 const extractInfoBasedOnAction = async (noteContent: string,action: Action): Promise<OpenAIResponse> => {

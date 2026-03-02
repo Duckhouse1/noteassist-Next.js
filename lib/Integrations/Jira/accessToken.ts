@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { decrypt } from "../../cryptation";
-import { ProviderId } from "../Types";
 import { refreshJiraAccessToken } from "./refreshtoken";
+import { ProviderId } from "../ProviderUserConfigs";
 
 export async function getJiraAccessToken(userId: string, organizationId: string) {
     const conn = await prisma.integrationConnection.findUnique({

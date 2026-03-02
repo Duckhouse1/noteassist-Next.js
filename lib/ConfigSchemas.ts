@@ -52,8 +52,9 @@ export const SharePointSchema: z.ZodType<JiraSettings> = z.object({
 });
 
 export const ClickUpSchema : z.ZodType<ClickUpSettings> = z.object({
-  DefaultSpace: z.string().default(""),
-  DefaultList: z.string().default(""),
+  DefaultSpaceID: z.string().default(""),
+  DefaultListID: z.string().default(""),
+  DefaultWorkSpaceID: z.string().default(""),
 });
 
 export const ProviderSchemas = {

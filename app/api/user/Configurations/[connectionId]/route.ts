@@ -1,30 +1,29 @@
+import { NextRequest, NextResponse } from "next/server";
 import { authOptions } from "@/lib/auth";
 import { ProviderSchemas } from "@/lib/ConfigSchemas";
 import { normalizeProviderId } from "@/lib/Integrations/NormalizedProvider";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
-import { NextResponse } from "next/server";
 import { z } from "zod";
 
 type ProviderId = keyof typeof ProviderSchemas;
 
 type ErrorBody = { error: string; details?: unknown };
+type Ctx = { params: Promise<{ connectionId: string }> };
 
 /**
  * GET /api/user/configurations/[connectionId]
  * Returns config for this connectionId.
  * If no config exists yet -> returns schema defaults.
  */
-export async function GET(
-  req: Request,
-  { params }: { params: { connectionId: string } }
-) {
+export async function GET(req: NextRequest, { params }: Ctx) {
+    const { connectionId } = await params;
+
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json<ErrorBody>({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const connectionId = params.connectionId;
 
   const conn = await prisma.integrationConnection.findFirst({
     where: { id: connectionId, userId: session.user.id },
@@ -74,9 +73,8 @@ export async function GET(
  * - Send header: If-Match-UpdatedAt: <ISO datetime string from last GET>
  * If header is present and DB updatedAt differs -> 409
  */
-export async function PUT(req: Request,{ params }: { params: Promise<{ connectionId: string }> }) {
-  
-  const { connectionId } = await params;
+export async function PUT(req: NextRequest, { params }: Ctx) {
+  const { connectionId } = await params;  
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json<ErrorBody>({ error: "Unauthorized" }, { status: 401 });
