@@ -82,9 +82,9 @@ export async function GET(req: NextRequest) {
                 },
             },
             update: {
-                accessToken: encrypt(tokenResponse.access_token),
+                accessToken: encrypt(tokenResponse.access_token ?? ""),
                 refreshToken: tokenResponse.refresh_token
-                    ? encrypt(tokenResponse.refresh_token)
+                    ? encrypt(tokenResponse.refresh_token ?? "")
                     : null,
                 expiresAt,
                 scope: tokenResponse.scope,
@@ -95,9 +95,9 @@ export async function GET(req: NextRequest) {
                 userId: payload.userId,
                 provider: "clickup",
                 displayName: "clickup",
-                accessToken: encrypt(tokenResponse.access_token),
+                accessToken: encrypt(tokenResponse.access_token ?? ""),
                 refreshToken: tokenResponse.refresh_token
-                    ? encrypt(tokenResponse.refresh_token)
+                    ? encrypt(tokenResponse.refresh_token ?? "")
                     : null,
                 expiresAt,
                 scope: tokenResponse.scope,
