@@ -25,7 +25,7 @@ export function buildUserConfigString(item: ProviderConfigItem): string {
     }
 
     case "clickup":{
-      return "ClickUp configs"
+      return "ClickUp configs" 
     }
   }
 }
