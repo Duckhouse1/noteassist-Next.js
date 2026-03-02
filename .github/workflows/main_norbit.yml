@@ -1,171 +1,124 @@
-# name: Build and deploy Next.js (standalone) to Azure Web App - Norbit
+name: Build and deploy Next.js (standalone) to Azure Web App - Norbit
 
-# on:
-#   push:
-#     branches: [main]
-#   workflow_dispatch:
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
 
-# jobs:
-#   build:
-#     runs-on: ubuntu-latest
-#     permissions:
-#       contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
-#     steps:
-#       - name: Checkout
-#         uses: actions/checkout@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-#       - name: Setup Node.js
-#         uses: actions/setup-node@v3
-#         with:
-#           node-version: 22
-#           cache: npm
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22
+          cache: npm
 
-#       - name: Install dependencies
-#         run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-#       - name: Generate Prisma Client
-#         run: npx prisma generate
+      - name: Build app
+        env:
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+          SQL_SERVER: ${{ secrets.SQL_SERVER }}
+          SQL_DATABASE: ${{ secrets.SQL_DATABASE }}
+          SQL_USER: ${{ secrets.SQL_USER }}
+          SQL_PASSWORD: ${{ secrets.SQL_PASSWORD }}
+          AZURE_AD_CLIENT_ID: ${{ secrets.AZURE_AD_CLIENT_ID }}
+          AZURE_AD_CLIENT_SECRET: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
+          AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          JIRA_CLIENT_ID: ${{ secrets.JIRA_CLIENT_ID }}
+          JIRA_CLIENT_SECRET: ${{ secrets.JIRA_CLIENT_SECRET }}
+          CLICKUP_CLIENT_ID: ${{ secrets.CLICKUP_CLIENT_ID }}
+          CLICKUP_CLIENT_SECRET: ${{ secrets.CLICKUP_CLIENT_SECRET }}
+        run: npm run build
 
-#       - name: Debug env presence (true/false only)
-#         env:
-#           NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
-#           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-#           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-#           ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
-#           SQL_SERVER: ${{ secrets.SQL_SERVER }}
-#           SQL_DATABASE: ${{ secrets.SQL_DATABASE }}
-#           SQL_USER: ${{ secrets.SQL_USER }}
-#           SQL_PASSWORD: ${{ secrets.SQL_PASSWORD }}
-#           AZURE_AD_CLIENT_ID: ${{ secrets.AZURE_AD_CLIENT_ID }}
-#           AZURE_AD_CLIENT_SECRET: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
-#           AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
-#           AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
-#           JIRA_CLIENT_ID: ${{ secrets.JIRA_CLIENT_ID }}
-#           JIRA_CLIENT_SECRET: ${{ secrets.JIRA_CLIENT_SECRET }}
-#           CLICKUP_CLIENT_ID: ${{ secrets.CLICKUP_CLIENT_ID }}
-#           CLICKUP_CLIENT_SECRET: ${{ secrets.CLICKUP_CLIENT_SECRET }}
-#         run: |
-#           node -e "console.log('NEXTAUTH_URL:', !!process.env.NEXTAUTH_URL)"
-#           node -e "console.log('NEXTAUTH_SECRET:', !!process.env.NEXTAUTH_SECRET)"
-#           node -e "console.log('DATABASE_URL:', !!process.env.DATABASE_URL)"
-#           node -e "console.log('ENCRYPTION_KEY:', !!process.env.ENCRYPTION_KEY)"
-#           node -e "console.log('SQL_SERVER:', !!process.env.SQL_SERVER)"
-#           node -e "console.log('SQL_DATABASE:', !!process.env.SQL_DATABASE)"
-#           node -e "console.log('SQL_USER:', !!process.env.SQL_USER)"
-#           node -e "console.log('SQL_PASSWORD:', !!process.env.SQL_PASSWORD)"
-#           node -e "console.log('AZURE_AD_CLIENT_ID:', !!process.env.AZURE_AD_CLIENT_ID)"
-#           node -e "console.log('AZURE_AD_CLIENT_SECRET:', !!process.env.AZURE_AD_CLIENT_SECRET)"
-#           node -e "console.log('AZURE_AD_TENANT_ID:', !!process.env.AZURE_AD_TENANT_ID)"
-#           node -e "console.log('AZURE_OPENAI_ENDPOINT:', !!process.env.AZURE_OPENAI_ENDPOINT)"
-#           node -e "console.log('JIRA_CLIENT_ID:', !!process.env.JIRA_CLIENT_ID)"
-#           node -e "console.log('JIRA_CLIENT_SECRET:', !!process.env.JIRA_CLIENT_SECRET)"
-#           node -e "console.log('CLICKUP_CLIENT_ID:', !!process.env.CLICKUP_CLIENT_ID)"
-#           node -e "console.log('CLICKUP_CLIENT_SECRET:', !!process.env.CLICKUP_CLIENT_SECRET)"
+      - name: Verify standalone server exists
+        run: |
+          echo "== .next/standalone =="
+          ls -la .next/standalone
+          test -f .next/standalone/server.js
+          echo "✅ .next/standalone/server.js exists"
 
-#       - name: Build app
-#         env:
-#           NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
-#           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-#           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-#           ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
-#           SQL_SERVER: ${{ secrets.SQL_SERVER }}
-#           SQL_DATABASE: ${{ secrets.SQL_DATABASE }}
-#           SQL_USER: ${{ secrets.SQL_USER }}
-#           SQL_PASSWORD: ${{ secrets.SQL_PASSWORD }}
-#           AZURE_AD_CLIENT_ID: ${{ secrets.AZURE_AD_CLIENT_ID }}
-#           AZURE_AD_CLIENT_SECRET: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
-#           AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
-#           AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
-#           JIRA_CLIENT_ID: ${{ secrets.JIRA_CLIENT_ID }}
-#           JIRA_CLIENT_SECRET: ${{ secrets.JIRA_CLIENT_SECRET }}
-#           CLICKUP_CLIENT_ID: ${{ secrets.CLICKUP_CLIENT_ID }}
-#           CLICKUP_CLIENT_SECRET: ${{ secrets.CLICKUP_CLIENT_SECRET }}
-#         run: npm run build
+      - name: Create deploy bundle
+        run: |
+          rm -rf deploy
+          cp -R .next/standalone/. deploy/
 
-#       - name: Verify standalone server exists
-#         run: |
-#           echo "== .next/standalone =="
-#           ls -la .next/standalone || true
-#           test -f .next/standalone/server.js
-#           echo "✅ .next/standalone/server.js exists"
+          node -e "require('fs').writeFileSync('deploy/package.json', JSON.stringify({name:'norbit-standalone',private:true,scripts:{start:'node server.js'}},null,2))"
 
-#       - name: Create deploy bundle
-#         run: |
-#           rm -rf deploy
-#           mkdir -p deploy
+          echo "== deploy contents =="
+          ls -la deploy
+          test -f deploy/server.js
+          echo "✅ deploy/server.js exists"
 
-#           # Copy standalone server files
-#           cp -R .next/standalone/* deploy/
+      - name: Zip deploy bundle
+        run: |
+          cd deploy
+          zip -r ../deploy.zip .
+          cd ..
+          ls -la deploy.zip
 
-#           # Copy static assets
-#           mkdir -p deploy/.next
-#           cp -R .next/static deploy/.next/static
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-app
+          path: deploy.zip
 
-#           # Copy public folder
-#           if [ -d public ]; then
-#             cp -R public deploy/public
-#           fi
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write
+      contents: read
 
-#           # Minimal package.json for Azure
-#           cat > deploy/package.json << 'EOF'
-#           {
-#             "name": "noteassist-standalone",
-#             "private": true,
-#             "scripts": {
-#               "start": "node server.js"
-#             }
-#           }
-#           EOF
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: node-app
+          path: .
 
-#           echo "== deploy contents =="
-#           ls -la deploy
-#           test -f deploy/server.js
-#           echo "✅ deploy/server.js exists"
+      - name: Verify zip exists
+        run: |
+          ls -la
+          test -f deploy.zip
+          echo "✅ deploy.zip present"
 
-#       - name: Zip deploy bundle
-#         run: |
-#           cd deploy
-#           zip -r ../deploy.zip .
-#           cd ..
-#           ls -la deploy.zip
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_226A1220C1FC4E419354950AC612FFD5 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_0A275869219D454A88A03FAB444C06D9 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_12C7C9D172544ED9A83D127A4C007F41 }}
 
-#       - name: Upload artifact
-#         uses: actions/upload-artifact@v4
-#         with:
-#           name: node-app
-#           path: deploy.zip
+      - name: Configure Azure App Service startup
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az webapp config set \
+              --name Norbit \
+              --resource-group $(az webapp list --query "[?name=='Norbit'].resourceGroup" -o tsv) \
+              --startup-file "node server.js"
+            az webapp config appsettings set \
+              --name Norbit \
+              --resource-group $(az webapp list --query "[?name=='Norbit'].resourceGroup" -o tsv) \
+              --settings WEBSITES_PORT=3000
 
-#   deploy:
-#     runs-on: ubuntu-latest
-#     needs: build
-#     permissions:
-#       id-token: write
-#       contents: read
-
-#     steps:
-#       - name: Download artifact
-#         uses: actions/download-artifact@v4
-#         with:
-#           name: node-app
-#           path: .
-
-#       - name: Verify zip exists
-#         run: |
-#           ls -la
-#           test -f deploy.zip
-#           echo "✅ deploy.zip present"
-
-#       - name: Azure Login
-#         uses: azure/login@v2
-#         with:
-#           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_226A1220C1FC4E419354950AC612FFD5 }}
-#           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_0A275869219D454A88A03FAB444C06D9 }}
-#           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_12C7C9D172544ED9A83D127A4C007F41 }}
-
-#       - name: Deploy to Azure Web App
-#         uses: azure/webapps-deploy@v3
-#         with:
-#           app-name: Norbit
-#           slot-name: Production
-#           package: deploy.zip
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: Norbit
+          slot-name: Production
+          package: deploy.zip
