@@ -12,7 +12,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const accessToken = await getClickUpAccessToken(userId, organizationId);
+  const accessToken = await getClickUpAccessToken(userId ?? "", organizationId ?? "");
   if (!accessToken) {
     return NextResponse.json({ error: "ClickUp not connected" }, { status: 400 });
   }
