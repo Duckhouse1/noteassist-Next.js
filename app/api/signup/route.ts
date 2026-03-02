@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { Prisma } from "@prisma/client";
 
 async function ensurePersonalOrg(userId: string) {
   const existing = await prisma.membership.findFirst({
@@ -51,8 +52,8 @@ export async function POST(req: Request) {
   const passwordHash = await bcrypt.hash(password, 12);
 
   // ✅ Do it in a transaction so user + org are consistent
-  const result = await prisma.$transaction(async (tx) => {
-    const user = await tx.user.create({
+const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {    
+  const user = await tx.user.create({
       data: {
         email: emailNorm,
         passwordHash,
