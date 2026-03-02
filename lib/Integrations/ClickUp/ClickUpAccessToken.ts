@@ -23,7 +23,7 @@ export async function getClickUpAccessToken(userId: string, organizationId: stri
 
   if (!conn?.accessToken) return null;
 
-  const accessToken = decrypt(conn.accessToken);
+  const accessToken = decrypt(conn.accessToken ?? "");
 
   return accessToken; 
 }
