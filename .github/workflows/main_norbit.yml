@@ -33,12 +33,54 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # ✅ Generate Prisma Client (THIS FIXES YOUR ERROR)
+      # Generate Prisma Client
       - name: Generate Prisma Client
         run: npx prisma generate
 
+      # Debug env presence (prints true/false only)
+      - name: Debug env presence
+        env:
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+          AZURE_AD_CLIENT_ID: ${{ secrets.AZURE_AD_CLIENT_ID }}
+          AZURE_AD_CLIENT_SECRET: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
+          AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          JIRA_CLIENT_ID: ${{ secrets.JIRA_CLIENT_ID }}
+          JIRA_CLIENT_SECRET: ${{ secrets.JIRA_CLIENT_SECRET }}
+          CLICKUP_CLIENT_ID: ${{ secrets.CLICKUP_CLIENT_ID }}
+          CLICKUP_CLIENT_SECRET: ${{ secrets.CLICKUP_CLIENT_SECRET }}
+        run: |
+          node -e "console.log('NEXTAUTH_URL:', !!process.env.NEXTAUTH_URL)"
+          node -e "console.log('NEXTAUTH_SECRET:', !!process.env.NEXTAUTH_SECRET)"
+          node -e "console.log('DATABASE_URL:', !!process.env.DATABASE_URL)"
+          node -e "console.log('ENCRYPTION_KEY:', !!process.env.ENCRYPTION_KEY)"
+          node -e "console.log('AZURE_AD_CLIENT_ID:', !!process.env.AZURE_AD_CLIENT_ID)"
+          node -e "console.log('AZURE_AD_CLIENT_SECRET:', !!process.env.AZURE_AD_CLIENT_SECRET)"
+          node -e "console.log('AZURE_AD_TENANT_ID:', !!process.env.AZURE_AD_TENANT_ID)"
+          node -e "console.log('AZURE_OPENAI_ENDPOINT:', !!process.env.AZURE_OPENAI_ENDPOINT)"
+          node -e "console.log('JIRA_CLIENT_ID:', !!process.env.JIRA_CLIENT_ID)"
+          node -e "console.log('JIRA_CLIENT_SECRET:', !!process.env.JIRA_CLIENT_SECRET)"
+          node -e "console.log('CLICKUP_CLIENT_ID:', !!process.env.CLICKUP_CLIENT_ID)"
+          node -e "console.log('CLICKUP_CLIENT_SECRET:', !!process.env.CLICKUP_CLIENT_SECRET)"
+
       # Build Next.js app
       - name: Build app
+        env:
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
+          AZURE_AD_CLIENT_ID: ${{ secrets.AZURE_AD_CLIENT_ID }}
+          AZURE_AD_CLIENT_SECRET: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
+          AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          JIRA_CLIENT_ID: ${{ secrets.JIRA_CLIENT_ID }}
+          JIRA_CLIENT_SECRET: ${{ secrets.JIRA_CLIENT_SECRET }}
+          CLICKUP_CLIENT_ID: ${{ secrets.CLICKUP_CLIENT_ID }}
+          CLICKUP_CLIENT_SECRET: ${{ secrets.CLICKUP_CLIENT_SECRET }}
         run: npm run build
 
       # Optional tests
