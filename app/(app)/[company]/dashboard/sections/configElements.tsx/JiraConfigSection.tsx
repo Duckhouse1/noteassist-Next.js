@@ -148,7 +148,7 @@ export default function JiraConfigPanel({ config, data, onPatch }: Props) {
     );
 }
 
-function ConfigField({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+export function ConfigField({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
     return (
         <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-gray-800">{label}</label>

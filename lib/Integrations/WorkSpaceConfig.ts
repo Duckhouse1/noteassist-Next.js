@@ -1,5 +1,5 @@
 import { AllIntegrationOptions } from "./Catalog";
-import { IntegrationOptionsTitle, ProviderId } from "./Types";
+import { ProviderId } from "./ProviderUserConfigs";
 
 
 

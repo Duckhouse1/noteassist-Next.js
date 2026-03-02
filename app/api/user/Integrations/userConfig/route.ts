@@ -3,18 +3,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ProviderSchemas } from "@/lib/ConfigSchemas";
+import { normalizeProviderId } from "@/lib/Integrations/NormalizedProvider";
 
 type ProviderId = keyof typeof ProviderSchemas;
 
-function normalizeProviderId(p: string): ProviderId {
-  const x = p.trim().toLowerCase();
-  if (x === "azure-devops" || x === "azuredevops") return "azure-devops";
-  if (x === "outlook") return "outlook";
-  if (x === "jira" || x === "Jira") return "jira"
-  if (x === "sharepoint" || x === "SharePoint") return "sharepoint"
-  // add sharepoint/jira/notion when you add schemas
-  throw new Error(`Unsupported provider: ${p}`);
-}
 
 export async function PUT(req: Request) {
   const session = await getServerSession(authOptions);

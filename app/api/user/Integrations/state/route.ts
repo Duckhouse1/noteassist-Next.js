@@ -5,51 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { ProviderSchemas } from "@/lib/ConfigSchemas";
 import { AllIntegrationOptions } from "@/lib/Integrations/Catalog";
 import { WorkspaceConfig } from "@/lib/Integrations/WorkSpaceConfig";
+import { normalizeProviderId, normalizeProviderIdSafe } from "@/lib/Integrations/NormalizedProvider";
+
+
+// Re-export so existing imports from other files keep working
 
 type WorkspaceProviderId = typeof AllIntegrationOptions[number]["providerId"];
-
-function normalizeWorkspaceProviderId(p: string): WorkspaceProviderId | null {
-  const raw = p.trim();
-  const x = raw.toLowerCase();
-
-  // canonical / db ids
-  if (x === "azure-devops" || x === "azuredevops") return "azure-devops";
-  if (x === "outlook") return "outlook";
-  if (x === "sharepoint") return "sharepoint";
-  if (x === "jira") return "jira";
-  if (x === "notion") return "notion";
-
-  // old UI keys
-  if (raw === "Azure-Devops") return "azure-devops";
-  if (raw === "Outlook") return "outlook";
-  if (raw === "SharePoint") return "sharepoint";
-  if (raw === "Jira") return "jira";
-  if (raw === "Notion") return "notion";
-
-  return null;
-}
-// --- Provider id types used by ProviderSchemas ---
-type ProviderId = keyof typeof ProviderSchemas;
-
-function normalizeProviderId(p: string): ProviderId {
-  const x = p.trim().toLowerCase();
-  if (x === "azure-devops" || x === "azuredevops") return "azure-devops";
-  if (x === "outlook") return "outlook";
-  if (x === "jira") return "jira";
-  if (x==="sharepoint" || x === "SharePoint") return "sharepoint"
-  throw new Error(`Unsupported provider: ${p}`);
-}
-
-// Map DB provider -> canonical provider id
-function providerDbToUi(p: string): ProviderId | null {
-  const x = p.trim().toLowerCase();
-  if (x === "azure-devops" || x === "azuredevops") return "azure-devops";
-  if (x === "outlook") return "outlook";
-  if (x === "jira") return "jira";
-  // if (x === "sharepoint") return "sharepoint";
-  // if (x === "notion") return "notion";
-  return null;
-}
 
 // Build defaults for toggles from the catalog
 function defaultWorkspaceConfig(): WorkspaceConfig {
@@ -57,7 +18,7 @@ function defaultWorkspaceConfig(): WorkspaceConfig {
 
   for (const card of AllIntegrationOptions) {
     enabledActions[card.providerId] = Object.fromEntries(
-      card.actions.map((a) => [a.key, false]) // default enabled = true
+      card.actions.map((a) => [a.key, false])
     );
   }
 
@@ -67,13 +28,12 @@ function defaultWorkspaceConfig(): WorkspaceConfig {
   };
 }
 
-export async function GET(req:Request) {
+export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // You likely also need organizationId scoping; add it if you store org in session.
   const userId = session.user.id;
   const url = new URL(req.url);
   const orgSlug = url.searchParams.get("org");
@@ -88,6 +48,7 @@ export async function GET(req:Request) {
   if (!org) {
     return NextResponse.json({ error: "Org not found" }, { status: 404 });
   }
+
   // 1) Connections
   const connections = await prisma.integrationConnection.findMany({
     where: { userId, organizationId: org.id },
@@ -98,12 +59,18 @@ export async function GET(req:Request) {
   // 2) IntegrationConfig rows for those connections
   const configs = await prisma.integrationConfig.findMany({
     where: { connectionId: { in: connections.map((c) => c.id) } },
-    select: { connectionId: true, provider: true, data: true, schemaVersion: true, updatedAt: true },
+    select: {
+      connectionId: true,
+      provider: true,
+      data: true,
+      schemaVersion: true,
+      updatedAt: true,
+    },
   });
 
   const cfgByConnectionId = new Map(configs.map((c) => [c.connectionId, c]));
 
-  // 3) Normalize and validate configs with defaults (same behavior as your single GET)
+  // 3) Normalize and validate configs with defaults
   const parsedConfigs = connections.map((conn) => {
     const provider = normalizeProviderId(conn.provider);
     const schema = ProviderSchemas[provider];
@@ -123,8 +90,8 @@ export async function GET(req:Request) {
 
     return {
       connectionId: conn.id,
-      provider, // db canonical provider id (azure-devops/outlook/jira)
-      providerUi: providerDbToUi(provider) ?? provider, // helpful for UI mapping
+      provider,
+      providerUi: provider,
       displayName: conn.displayName ?? provider,
       schemaVersion: row?.schemaVersion ?? 1,
       updatedAt: row?.updatedAt ?? null,
@@ -135,7 +102,7 @@ export async function GET(req:Request) {
   // 4) Workspace toggles (UserWorkspaceConfig)
   const wsDefault = defaultWorkspaceConfig();
 
-   const wsRow = await prisma.userWorkspaceConfig.findUnique({
+  const wsRow = await prisma.userWorkspaceConfig.findUnique({
     where: {
       organizationId_userId: { organizationId: org.id, userId },
     },
@@ -145,27 +112,36 @@ export async function GET(req:Request) {
   let ws: WorkspaceConfig = wsDefault;
   if (wsRow?.data) {
     try {
-      ws = { ...wsDefault, ...(JSON.parse(wsRow.data) as Partial<WorkspaceConfig>) };
+      ws = {
+        ...wsDefault,
+        ...(JSON.parse(wsRow.data) as Partial<WorkspaceConfig>),
+      };
     } catch {
       ws = wsDefault;
     }
   }
+
+  // Normalize enabledProviders
   ws.enabledProviders = (ws.enabledProviders ?? [])
-  .map((p) => normalizeWorkspaceProviderId(p))
-  .filter((p): p is WorkspaceProviderId => p !== null);
+    .map((p) => normalizeProviderIdSafe(p))
+    .filter((p): p is WorkspaceProviderId => p !== null);
 
-// enabledActions keys
-const normalizedEnabledActions: Partial<Record<WorkspaceProviderId, Record<string, boolean>>> = {};
+  // Normalize enabledActions keys
+  const normalizedEnabledActions: Partial<
+    Record<WorkspaceProviderId, Record<string, boolean>>
+  > = {};
 
-for (const [k, v] of Object.entries(ws.enabledActions ?? {})) {
-  const nk = normalizeWorkspaceProviderId(k);
-  if (!nk) continue;
-  if (v && typeof v === "object") {
-    normalizedEnabledActions[nk] = v as Record<string, boolean>;
+  for (const [k, v] of Object.entries(ws.enabledActions ?? {})) {
+    const nk = normalizeProviderIdSafe(k);
+    if (!nk) continue;
+    if (v && typeof v === "object") {
+      normalizedEnabledActions[nk] = v as Record<string, boolean>;
+    }
   }
-}
 
-ws.enabledActions = normalizedEnabledActions as WorkspaceConfig["enabledActions"];
+  ws.enabledActions =
+    normalizedEnabledActions as WorkspaceConfig["enabledActions"];
+
   // 5) Ensure all catalog actions exist in ws.enabledActions (fill missing defaults)
   for (const card of AllIntegrationOptions) {
     ws.enabledActions[card.providerId] ??= {};
@@ -177,8 +153,6 @@ ws.enabledActions = normalizedEnabledActions as WorkspaceConfig["enabledActions"
   }
 
   // 6) Auto-derive enabledProviders from enabledActions
-  //    If any action is true for a provider, that provider should be enabled.
-  //    This self-heals data where actions were saved but enabledProviders wasn't updated.
   const derivedProviders = new Set<WorkspaceProviderId>(ws.enabledProviders);
   for (const card of AllIntegrationOptions) {
     const actionMap = ws.enabledActions[card.providerId] ?? {};

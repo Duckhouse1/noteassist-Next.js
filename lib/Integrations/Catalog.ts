@@ -3,11 +3,12 @@ import { AllOutlookActions } from "./Outlook/AllActions";
 import { AllJiraActions } from "./Jira/AllActions";
 import { IntegrationOption } from "./Types";
 import { AllSharePointActions } from "./Sharepoint/AllActions";
+import { AllClickUpActions } from "./ClickUp/AllActions";
 
 export const AllIntegrationOptions: IntegrationOption[] = [
   {
     title: "Azure DevOps",
-    description: "Connect to Azure Devops!",
+    description: "Connect to Devops",
     iconURL: "/10261-icon-service-Azure-DevOps.svg",
     connectionUrl: "/api/integrations/azure-devops/connect",
     providerId: "azure-devops",
@@ -48,7 +49,7 @@ export const AllIntegrationOptions: IntegrationOption[] = [
   },
   {
     title: "Outlook",
-    description: "Connect to your Outlook",
+    description: "Connect to Outlook",
     iconURL: "/Microsoft_Office_Outlook_(2018–2024).svg.png",
     connectionUrl: "/api/integrations/microsoft-graph/connect",
     providerId: "outlook",
@@ -73,7 +74,7 @@ export const AllIntegrationOptions: IntegrationOption[] = [
   },
   {
     title: "Jira",
-    description: "Connect to Atlassian Jira",
+    description: "Connect to Jira",
     iconURL: "/jira-icon.svg",
     connectionUrl: "/api/integrations/jira/connect",
     providerId: "jira",
@@ -102,4 +103,16 @@ export const AllIntegrationOptions: IntegrationOption[] = [
       },
     ],
   },
+  {
+    title: "Click Up",
+    iconURL: "/clickupIcon.png",
+    description: "Connect to ClickUp",
+    connectionUrl: "/api/integrations/ClickUp/connect",
+    providerId: "clickup",
+    actions: AllClickUpActions,
+    needsProviderFetch: true,
+    sections: [
+      {title:"Bla bla bla", description:" bla description"}
+    ]
+  }
 ];

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { displayNameByProvider } from "../../microsoft-graph/callback/route";
 import { encrypt } from "@/lib/cryptation";
-import { ProviderId } from "@/lib/Integrations/Types";
+import { ProviderId } from "@/lib/Integrations/ProviderUserConfigs";
 
 async function exchangeCodeForToken(params: {
     tenant: string;

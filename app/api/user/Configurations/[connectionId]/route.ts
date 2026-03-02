@@ -1,5 +1,6 @@
 import { authOptions } from "@/lib/auth";
 import { ProviderSchemas } from "@/lib/ConfigSchemas";
+import { normalizeProviderId } from "@/lib/Integrations/NormalizedProvider";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
@@ -169,14 +170,3 @@ export async function PUT(req: Request,{ params }: { params: Promise<{ connectio
  * Normalize DB provider values to your canonical schema keys.
  * Best practice: store canonical values in DB and delete this later.
  */
-function normalizeProviderId(p: string): ProviderId {
-  const x = p.trim().toLowerCase();
-
-  if (x === "azure-devops" || x === "azuredevops" || x === "azure-devops ") return "azure-devops";
-  if (x === "outlook") return "outlook";
-  // if (x === "sharepoint") return "sharepoint";
-  // if (x === "jira") return "jira";
-  // if (x === "notion") return "notion";
-
-  throw new Error(`Unsupported provider: ${p}`);
-}

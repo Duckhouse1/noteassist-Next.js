@@ -58,7 +58,8 @@ export default function ActionGalleryPage({
                 actions: ungrouped,
             });
         }
-
+        console.log("her er groups:");
+        console.log(groups);
         return groups;
     }, [actions]);
 

@@ -118,7 +118,7 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
                                         }}
                                         disabled={isExecuting}
                                         className={[
-                                            "flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition",
+                                            " cursor-pointer flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition",
                                             isExecuting
                                                 ? "bg-amber-50 text-amber-600 ring-2 ring-amber-300 animate-pulse"
                                                 : isActive

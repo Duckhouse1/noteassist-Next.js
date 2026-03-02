@@ -9,6 +9,7 @@ import { Action } from "@/lib/Integrations/Types";
 
 export const ActionsBody = ({ action, onActionComplete }: { action: Action; onActionComplete: () => void; }) => {
     const { OpenAISolutionsMap } = useContext(OpenAIActionSolutionsMapContext)
+    
     const { show } = useContext(ShowNotesBodyContext)
 
     if (show) {

@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { ProviderSchemas } from "@/lib/ConfigSchemas";
+import { normalizeProviderId } from "@/lib/Integrations/NormalizedProvider";
 
 type ProviderId = keyof typeof ProviderSchemas;
 
@@ -22,21 +23,6 @@ type ErrorEntry = {
   provider?: string;
   error: string;
 };
-
-// Only normalize to providers that actually exist in ProviderSchemas
-function normalizeProviderId(p: string): ProviderId {
-  const x = p.trim().toLowerCase();
-
-  if (x === "azure-devops" || x === "azuredevops") return "azure-devops";
-  if (x === "outlook") return "outlook";
-
-  // If you add these schemas later, then add them here too:
-  // if (x === "sharepoint") return "sharepoint";
-  // if (x === "jira") return "jira";
-  // if (x === "notion") return "notion";
-
-  throw new Error(`Unsupported provider: ${p}`);
-}
 
 export async function GET() {
   const session = await getServerSession(authOptions);

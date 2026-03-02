@@ -1,14 +1,45 @@
-import { ShowNotesBodyContext } from "@/app/Contexts";
+import { OpenAIActionSolutionsMapContext, ShowNotesBodyContext } from "@/app/Contexts";
 import { EmailDraft } from "@/app/types/OpenAI";
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { NotesBody } from "../../NotesBody";
+import { ProviderId } from "@/lib/Integrations/ProviderUserConfigs";
 
-export const OutLookDraft = ({ emailDraft }: { emailDraft: EmailDraft }) => {
-    const {show} = useContext(ShowNotesBodyContext)
+export const OutLookDraft = ({ emailDraft, integrationKey }: { emailDraft: EmailDraft, integrationKey: ProviderId }) => {
+    const { show } = useContext(ShowNotesBodyContext)
+    const { OpenAISolutionsMap, setOpenAISolutionsMap } = useContext(OpenAIActionSolutionsMapContext);
+
+    const [editingRecipients, setEditingRecipients] = useState(false);
+    const [recipientInput, setRecipientInput] = useState("");
+
+    // When entering edit mode, join existing recipients into the input
+    const startEditing = () => {
+        setRecipientInput(emailDraft.recipients.join(", "));
+        setEditingRecipients(true);
+    };
+
+    // When saving, split by comma and trim
+    const saveRecipients = () => {
+        const parsed = recipientInput
+            .split(",")
+            .map((r) => r.trim())
+            .filter(Boolean);
+        const current = OpenAISolutionsMap.get(integrationKey);
+        if (current && current.type === "email_draft") {
+            setOpenAISolutionsMap(integrationKey, {
+                ...current,
+                content: {
+                    ...current.content,
+                    recipients: parsed,
+                },
+            });
+        }
+        // setEmailDraft((prev) => ({ ...prev, recipients: parsed }));
+        setEditingRecipients(false);
+    };
     const sendOutlookMail = () => {
 
     }
-     if(show){
+    if (show) {
         return <NotesBody></NotesBody>
     }
     return (
@@ -36,9 +67,9 @@ export const OutLookDraft = ({ emailDraft }: { emailDraft: EmailDraft }) => {
                         <p className="text-xs text-slate-500">Ready to send to Outlook</p>
                     </div>
                 </div>
-                <button 
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
-                onClick={() => sendOutlookMail()}
+                <button
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                    onClick={() => sendOutlookMail()}
                 >
                     Send via Outlook
                 </button>
@@ -48,19 +79,64 @@ export const OutLookDraft = ({ emailDraft }: { emailDraft: EmailDraft }) => {
             <div className="flex-1 overflow-y-auto p-6">
                 <div className="space-y-4">
                     {/* Recipients */}
+                    {/* Recipients */}
                     <div>
                         <label className="mb-2 block text-sm font-semibold text-slate-700">
                             To
                         </label>
-                        <div className="flex flex-wrap gap-2">
-                            {emailDraft.recipients.map((recipient, index) => (
-                                <span
-                                    key={index}
-                                    className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700 border border-blue-200"
-                                >
-                                    {recipient}
-                                </span>
-                            ))}
+                        <div className="flex items-center gap-2">
+                            {editingRecipients ? (
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="text"
+                                        value={recipientInput}
+                                        onChange={(e) => setRecipientInput(e.target.value)}
+                                        onKeyDown={(e) => e.key === "Enter" && saveRecipients()}
+                                        className="rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        style={{ width: `${Math.max(recipientInput.length, 20)}ch` }}
+                                        placeholder="email1@example.com, email2@example.com"
+                                        autoFocus
+                                    />
+                                    <button
+                                        onClick={saveRecipients}
+                                        className="shrink-0 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+                                    >
+                                        Save
+                                    </button>
+                                    <button
+                                        onClick={() => setEditingRecipients(false)}
+                                        className="shrink-0 rounded-md px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="flex flex-wrap gap-2">
+                                        {emailDraft.recipients.map((recipient, index) => (
+                                            <span
+                                                key={index}
+                                                className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700 border border-blue-200"
+                                            >
+                                                {recipient}
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <button
+                                        onClick={startEditing}
+                                        className="shrink-0 rounded-md p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                                        title="Edit recipients"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                                            <path d="m15 5 4 4" />
+                                        </svg>
+                                    </button>
+                                    <button className=" hover:bg-gray-100 hover:text-black px-2 py-0.5 rounded-m text-gray-400">
+                                        +
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
 
@@ -95,7 +171,7 @@ export const OutLookDraft = ({ emailDraft }: { emailDraft: EmailDraft }) => {
             {/* Footer Actions */}
             <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-6 py-4">
                 <div className="flex gap-2">
-                   
+
                     <button className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50">
                         Copy
                     </button>

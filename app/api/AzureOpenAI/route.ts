@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { OpenAIContentType, DevOpsResponse, EmailDraft, MeetingSummary, TaskList, OpenAIResponse } from "@/app/types/OpenAI";
 import { AzureOpenAI } from "openai";
 import { Action } from "@/lib/Integrations/Types";
-const pattoken = process.env.OPEN_AI_API_KEY!
+import { ClickUpTaskExtraction } from "@/lib/Integrations/ClickUp/OpenAI";
+// const pattoken = process.env.OPEN_AI_API_KEY!
 const apiKey = process.env.AZURE_OPENAI_API_KEY!;
 const falseApiKey = "notakey"
 const apiVersion = "2024-04-01-preview";
@@ -14,7 +15,7 @@ const deployment = "gpt-4o-mini";
 const options = { endpoint: fakeEndoint, apiKey: falseApiKey, deployment, apiVersion, };
 const client = new AzureOpenAI(options);
 // Generic OpenAI call function
-const callOpenAI = async <T extends OpenAIContentType>(systemPrompt: string, userPrompt: string, mockData: T, temperature: number = 0.3, maxTokens: number): Promise<T> => {
+export const callOpenAI = async <T extends OpenAIContentType>(systemPrompt: string, userPrompt: string, mockData: T, temperature: number = 0.3, maxTokens: number): Promise<T> => {
 
     try {
         const response = await client.chat.completions.create({
@@ -299,32 +300,18 @@ const extractInfoBasedOnAction = async (
 ): Promise<OpenAIResponse> => {
     switch (action.integration) {
         case "azure-devops":
-                console.log("Dette er user config: ");
-                console.log(action.UserConfig);
-                console.log("NOTE:", JSON.stringify(noteContent));
-
-                const content = await OpenAIDevOpsTaskExtraction(noteContent, action.UserConfig ?? "");
-                console.log("Dette er openAI response: ");
-                console.log(content);
-                return { type: "devops_tasks", content };
-                // } else if (action.integration === "Jira") {
-                //     const content = await OpenAIDevOpsTaskExtraction(noteContent);
-                //     return { type: "jira_tasks", content };
-
+            switch (action.key) {
+                case "ado.createWorkItems":
+                    const content = await OpenAIDevOpsTaskExtraction(noteContent, action.UserConfig ?? "");
+                    // console.log("Dette er openAI response: ");
+                    // console.log(content);
+                    return { type: "devops_tasks", content };
+                case "":
+            }
         case "outlook": {
             const content = await OpenAIEmailDraftExtraction(noteContent);
             return { type: "email_draft", content };
         }
-
-        // case "meeting_summary": {
-        //     const content = await OpenAIMeetingSummaryExtraction(noteContent);
-        //     return { type: "meeting_summary", content };
-        // }
-
-        // case "task_list": {
-        //     const content = await OpenAITaskListExtraction(noteContent);
-        //     return { type: "task_list", content };
-        // }
 
         case "sharepoint": {
             const content = await OpenAIEmailDraftExtraction(noteContent);
@@ -336,9 +323,15 @@ const extractInfoBasedOnAction = async (
             return { type: "jira_tasks", content };
         }
 
-        // case "attach_photo":
-        // case "attach_photo":
-        //     throw new Error(`Action type ${action.key} not yet implemented`);
+        case "clickup": {
+            switch (action.key) {
+                case "clickup.createtasks":
+                    const content = await ClickUpTaskExtraction(noteContent, action.UserConfig ?? "");
+                    return { type: "clickup_tasks", content }
+            }
+
+        }
+
         default:
             throw new Error(`Unsupported action key: ${action.key}`);
     }

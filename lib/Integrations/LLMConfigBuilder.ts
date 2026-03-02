@@ -24,8 +24,8 @@ export function buildUserConfigString(item: ProviderConfigItem): string {
       return types.length > 0 ? types.join(", ") : "Jira defaults loaded.";
     }
 
-    case "notion": {
-      return "Notion default loaded";
+    case "clickup":{
+      return "ClickUp configs"
     }
   }
 }

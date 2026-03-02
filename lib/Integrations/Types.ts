@@ -1,4 +1,5 @@
 import { ActionKey } from "@/app/(app)/[company]/dashboard/sections/ConfigurationPage";
+import { ProviderId } from "./ProviderUserConfigs";
 
 export type IntegrationOptionsTitle =
   | "Azure-Devops"
@@ -7,7 +8,7 @@ export type IntegrationOptionsTitle =
   | "Jira"
   | "Notion";
 
-  export type ProviderId = "azure-devops" | "outlook" | "sharepoint" | "jira" | "notion";
+  // export type ProviderId = "azure-devops" | "outlook" | "sharepoint" | "jira" | "notion" | "click-up";
 export interface IntegrationConnection {
   id: string;
   displayName: string;

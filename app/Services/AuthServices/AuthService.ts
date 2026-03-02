@@ -1,6 +1,6 @@
-import { IntegrationOptionsTitle } from "@/app/(app)/[company]/dashboard/sections/ConfigurationPage";
+import { ProviderId } from "@/lib/Integrations/ProviderUserConfigs";
 
-async function GetAccessToken(connection: IntegrationOptionsTitle) {
+async function GetAccessToken(connection: ProviderId) {
   try {
     const response = await fetch(`/api/user/GetAccessTokenByProvider?provider=${encodeURIComponent(connection)}`,
       { method: "GET" }

@@ -15,6 +15,8 @@ import { OutlookSettings } from "@/lib/Integrations/Outlook/Configuration";
 import { ConfigSkeletonGrid } from "./2x2SkeletonGrid";
 import JiraConfigPanel from "../(app)/[company]/dashboard/sections/configElements.tsx/JiraConfigSection";
 import { JiraSettings } from "@/lib/Integrations/Jira/Configuration";
+import { ClickUpSettings } from "@/lib/Integrations/ClickUp/Configuration";
+import ClickUpConfigs from "../(app)/[company]/dashboard/sections/configElements.tsx/ClickUpConfigSection";
 
 
 type ConfigFieldValue = string | string[] | boolean | number | Record<string, string[]>;
@@ -189,6 +191,24 @@ export default function IntegrationOptionView({
                 }
                 data={
                   providerData?.provider === "jira"
+                    ? providerData.data
+                    : null
+                }
+                onPatch={(patch) => {
+                  if (!isConnected) return;
+                  for (const [k, v] of Object.entries(patch)) onConfigChange(k, v);
+                }}
+              />
+            )}
+              {option.providerId === "clickup" && (
+              <ClickUpConfigs
+                config={
+                  configItem?.provider === "clickup"
+                    ? (configItem.config as ClickUpSettings)
+                    : undefined
+                }
+                data={
+                  providerData?.provider === "clickup"
                     ? providerData.data
                     : null
                 }

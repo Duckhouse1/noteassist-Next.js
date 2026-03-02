@@ -1,10 +1,11 @@
 import { useContext } from "react"
 import { DevOpsPreBody } from "./IntegrationBodys/DevOps/DevOpsPreBody"
 import { ActionExecutionContext, OpenAIActionSolutionsMapContext } from "@/app/Contexts"
-import { ProviderId } from "@/lib/Integrations/Types"
 import { OutLookDraft } from "./IntegrationBodys/Outlook/OutLookDraft"
 import { DevOpsResponse } from "@/app/types/OpenAI"
 import { JiraPreBody } from "./IntegrationBodys/Jira/JiraPreBody"
+import { ProviderId } from "@/lib/Integrations/ProviderUserConfigs"
+import ClickUpPreBody from "./IntegrationBodys/ClickUp/ClickUpPreBody"
 
 
 
@@ -53,8 +54,7 @@ export const IntegrationBody = ({ IntegrationOption, onActionComplete }: { Integ
             {response?.type === "devops_tasks" && (
                 <>
                     <DevOpsPreBody integrationKey={IntegrationOption} />
-                    <button
-                        className={[
+                    <button className={[
                             "ml-4 mt-3 p-2 px-7 rounded-2xl font-semibold transition-all duration-300 inline-flex items-center gap-2",
                             isCompleted
                                 ? "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300 cursor-default"
@@ -88,7 +88,7 @@ export const IntegrationBody = ({ IntegrationOption, onActionComplete }: { Integ
             )}
             {IntegrationOption === "outlook" && response?.type === "email_draft" && (
                 <>
-                    <OutLookDraft emailDraft={response.content} />
+                    <OutLookDraft emailDraft={response.content} integrationKey={IntegrationOption} />
                 </>
             )}
             {response?.type === "jira_tasks" && (
@@ -123,6 +123,42 @@ export const IntegrationBody = ({ IntegrationOption, onActionComplete }: { Integ
                             </>
                         ) : (
                             <>Create in Jira</>
+                        )}
+                    </button>
+                </>
+            )}
+             {response?.type === "clickup_tasks" && (
+                <>
+                    <ClickUpPreBody integrationKey={IntegrationOption} />
+                    <button
+                        className={[
+                            "ml-4 mt-3 p-2 px-7 rounded-2xl font-semibold transition-all duration-300 inline-flex items-center gap-2",
+                            isCompleted
+                                ? "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300 cursor-default"
+                                : isExecuting
+                                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                                    : "bg-black text-white cursor-pointer hover:bg-gray-800",
+                        ].join(" ")}
+                        disabled={isExecuting || isCompleted}
+                        onClick={handleCreate}
+                    >
+                        {isExecuting ? (
+                            <>
+                                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
+                                    <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                                </svg>
+                                Creating…
+                            </>
+                        ) : isCompleted ? (
+                            <>
+                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none">
+                                    <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                                Performed
+                            </>
+                        ) : (
+                            <>Create in ClickUp</>
                         )}
                     </button>
                 </>

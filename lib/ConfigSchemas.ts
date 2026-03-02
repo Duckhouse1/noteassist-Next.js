@@ -2,6 +2,7 @@ import { z } from "zod";
 import { AzureDevopsSettings } from "./Integrations/AzureDevops/Configuration";
 import { OutlookSettings } from "./Integrations/Outlook/Configuration";
 import { JiraSettings } from "./Integrations/Jira/Configuration";
+import { ClickUpSettings } from "./Integrations/ClickUp/Configuration";
 
 export const AzureDevopsConfigSchema: z.ZodType<AzureDevopsSettings> = z
   .object({
@@ -50,11 +51,17 @@ export const SharePointSchema: z.ZodType<JiraSettings> = z.object({
   defaultIssueTypes: z.array(z.string()).default([]),
 });
 
+export const ClickUpSchema : z.ZodType<ClickUpSettings> = z.object({
+  DefaultSpace: z.string().default(""),
+  DefaultList: z.string().default(""),
+});
+
 export const ProviderSchemas = {
   "azure-devops": AzureDevopsConfigSchema,
   outlook: OutlookConfigSchema,
   jira: JiraConfigSchema,
-  sharepoint:SharePointSchema
+  sharepoint:SharePointSchema,
+  clickup:ClickUpSchema
 } as const;
 
 export type ProviderKey = keyof typeof ProviderSchemas;

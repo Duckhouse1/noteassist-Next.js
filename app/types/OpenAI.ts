@@ -1,5 +1,6 @@
 // types/OpenAI.ts
 
+import { ClickUpAIResponse } from "@/lib/Integrations/ClickUp/Configuration"
 import { DevOpsArea, DevOpsIteration } from "../(app)/[company]/dashboard/components/IntegrationBodys/DevOps/DevOpsPreBody"
 import { DevOpsProjectsProps } from "../Services/DevOpsServices/Fetchservice"
 
@@ -89,12 +90,14 @@ export type OpenAIContentType =
     | DevOpsResponse
     | EmailDraft
     | MeetingSummary
-    | TaskList;
+    | TaskList
+    | ClickUpAIResponse
 
 // Discriminated union for typed responses
 export type OpenAIResponse =
     | { type: "devops_tasks"; content: DevOpsResponse }
     | { type: "jira_tasks"; content: DevOpsResponse }
     | { type: "email_draft"; content: EmailDraft }
+    | { type: "clickup_tasks"; content: ClickUpAIResponse }
 // | { type: "meeting_summary"; content: MeetingSummary }
 // | { type: "task_list"; content: TaskList };
