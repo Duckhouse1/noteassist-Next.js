@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build && node scripts/copy-standalone-assets.mjs",
     "postinstall": "prisma generate",
-    "start": "node .next/standalone/server.js",
+    "start": "next start",
     "lint": "eslint",
     "test": "jest"
   },
