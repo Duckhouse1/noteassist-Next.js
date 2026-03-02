@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 async function ensurePersonalOrg(userId: string) {
   const existing = await prisma.membership.findFirst({
