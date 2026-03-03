@@ -1,12 +1,5 @@
 import { Action } from "../Types";
 
-
-
-
-
-
-
-
 export const AllOutlookActions: Action[] = [
     {
         key: "outlook.EmailDraft",
@@ -16,18 +9,10 @@ export const AllOutlookActions: Action[] = [
         integration: "outlook"
     },
     {
-        key: "OutLook.ScheduleMeeting",
-        title: "Schedule new outlook meeting",
-        description: "Create a new outlook meeting",
-        createText: "Create new outlook meeting",
+        key: "outlook.ScheduleMeeting",
+        title: "Schedule Outlook meeting",
+        description: "Create a new calendar meeting based on your notes",
+        createText: "Schedule meeting in Outlook",
         integration: "outlook"
     },
-    {
-        key: "OutLook.Emailread",
-        title: "Summarize Indbox",
-        description: "Have ai summarize your indbox",
-        createText: "Create new outlook meeting",
-        integration: "outlook"
-    },
-
 ]

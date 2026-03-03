@@ -1,6 +1,6 @@
 // Services/OpenAIService.ts
 import { NextRequest, NextResponse } from "next/server";
-import { OpenAIContentType, DevOpsResponse, EmailDraft, MeetingSummary, TaskList, OpenAIResponse } from "@/app/types/OpenAI";
+import { OpenAIContentType, DevOpsResponse, EmailDraft, MeetingSummary, TaskList, OpenAIResponse, OutlookMeeting } from "@/app/types/OpenAI";
 import { AzureOpenAI } from "openai";
 import { Action } from "@/lib/Integrations/Types";
 import { ClickUpTaskExtraction } from "@/lib/Integrations/ClickUp/OpenAI";
@@ -293,6 +293,44 @@ Return ONLY valid JSON with this structure:
     return callOpenAI<TaskList>(systemPrompt, userPrompt, mockData, 0.6, 2000);
 };
 
+const OpenAIOutlookMeetingExtraction = async (noteContent: string): Promise<OutlookMeeting> => {
+    const systemPrompt = `You are an expert at extracting meeting details from notes and outputting strict JSON.
+You MUST return VALID JSON ONLY — no markdown, no explanation, no code fences.
+For date/time fields, output ISO 8601 format (e.g. "2025-04-10T14:00:00").
+If no specific date is mentioned, use a sensible near-future date.
+If no duration is mentioned, default to 60 minutes.
+Extract attendee emails where present; if names only, use name@unknown.com as placeholder.`;
+
+    const userPrompt = `Extract meeting details from the following notes and return JSON matching this exact schema:
+{
+  "title": "string — meeting subject",
+  "description": "string — agenda or context from the notes",
+  "startDateTime": "ISO 8601 string",
+  "endDateTime": "ISO 8601 string",
+  "attendees": ["email1@example.com"],
+  "location": "string or empty string",
+  "isOnlineMeeting": true or false
+}
+
+Notes:
+${noteContent}
+
+Return ONLY valid JSON.`;
+
+    const mockData: OutlookMeeting = {
+        title: "Project Sync",
+        description: "Follow-up on action items from today's meeting.",
+        startDateTime: new Date(Date.now() + 86400000).toISOString().slice(0, 19),
+        endDateTime: new Date(Date.now() + 86400000 + 3600000).toISOString().slice(0, 19),
+        attendees: ["attendee@example.com"],
+        location: "",
+        isOnlineMeeting: true,
+    };
+
+    return callOpenAI<OutlookMeeting>(systemPrompt, userPrompt, mockData, 0.3, 1000);
+};
+
+
 // Generic extraction based on action
 const extractInfoBasedOnAction = async (
     noteContent: string,
@@ -309,6 +347,10 @@ const extractInfoBasedOnAction = async (
                 case "":
             }
         case "outlook": {
+            if (action.key === "outlook.ScheduleMeeting") {
+                const content = await OpenAIOutlookMeetingExtraction(noteContent);
+                return { type: "outlook_meeting", content };
+            }
             const content = await OpenAIEmailDraftExtraction(noteContent);
             return { type: "email_draft", content };
         }

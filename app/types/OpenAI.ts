@@ -69,6 +69,16 @@ export interface EmailDraft {
     recipients: string[];
 }
 
+export interface OutlookMeeting {
+    title: string;
+    description: string;
+    startDateTime: string;   // ISO 8601, e.g. "2025-04-10T14:00:00"
+    endDateTime: string;     // ISO 8601
+    attendees: string[];     // email addresses
+    location?: string;
+    isOnlineMeeting: boolean;
+}
+
 export interface MeetingSummary {
     title: string;
     keyPoints: string[];
@@ -92,6 +102,7 @@ export type OpenAIContentType =
     | MeetingSummary
     | TaskList
     | ClickUpAIResponse
+    | OutlookMeeting
 
 // Discriminated union for typed responses
 export type OpenAIResponse =
@@ -99,5 +110,6 @@ export type OpenAIResponse =
     | { type: "jira_tasks"; content: DevOpsResponse }
     | { type: "email_draft"; content: EmailDraft }
     | { type: "clickup_tasks"; content: ClickUpAIResponse }
+    | { type: "outlook_meeting"; content: OutlookMeeting }
 // | { type: "meeting_summary"; content: MeetingSummary }
 // | { type: "task_list"; content: TaskList };

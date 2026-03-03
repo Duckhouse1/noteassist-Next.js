@@ -2,10 +2,11 @@ import { useContext } from "react"
 import { DevOpsPreBody } from "./IntegrationBodys/DevOps/DevOpsPreBody"
 import { ActionExecutionContext, OpenAIActionSolutionsMapContext } from "@/app/Contexts"
 import { OutLookDraft } from "./IntegrationBodys/Outlook/OutLookDraft"
-import { DevOpsResponse } from "@/app/types/OpenAI"
+import { DevOpsResponse, OutlookMeeting } from "@/app/types/OpenAI"
 import { JiraPreBody } from "./IntegrationBodys/Jira/JiraPreBody"
 import { ProviderId } from "@/lib/Integrations/ProviderUserConfigs"
 import ClickUpPreBody from "./IntegrationBodys/ClickUp/ClickUpPreBody"
+import { OutlookMeetingPreBody } from "./IntegrationBodys/Outlook/OutlookMeetingPreBody"
 
 
 
@@ -89,6 +90,11 @@ export const IntegrationBody = ({ IntegrationOption, onActionComplete }: { Integ
             {IntegrationOption === "outlook" && response?.type === "email_draft" && (
                 <>
                     <OutLookDraft emailDraft={response.content} integrationKey={IntegrationOption} />
+                </>
+            )}
+            {IntegrationOption === "outlook" && response?.type === "outlook_meeting" && (
+                <>
+                    <OutlookMeetingPreBody meeting={response.content as OutlookMeeting} integrationKey={IntegrationOption} />
                 </>
             )}
             {response?.type === "jira_tasks" && (

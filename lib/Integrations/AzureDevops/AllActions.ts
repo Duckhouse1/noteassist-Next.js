@@ -11,11 +11,4 @@ export const AllADOActions: Action[] = [
         createText: "Create work items",
         integration: "azure-devops",
     },
-    {
-        key: "ado.changeSettings",
-        title: "Change setting",
-        description: "This is a description",
-        createText: "Change your azure devops settings",
-        integration: "azure-devops"
-    }
 ]

@@ -40,6 +40,7 @@ export interface IntegrationOption {
   needsProviderFetch:boolean
   UserConfigFields?: UserConfigField[];     // ✅ schema/metadata only
   sections: IntegrationViewSection[];
+  commingSoon?:boolean
 }
 
 export type FieldType = "text" | "select" | "multiselect" | "boolean";

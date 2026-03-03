@@ -8,14 +8,14 @@ import { AllExportActions } from "./Exports/AllActions";
 
 export const AllIntegrationOptions: IntegrationOption[] = [
   {
-    title:"Export",
-    description:"Export notes local",
-    iconURL:"/export-icon.svg",
-    providerId:"Export",
+    title: "Export",
+    description: "Export notes local",
+    iconURL: "/export-icon.svg",
+    providerId: "Export",
     actions: AllExportActions,
     needsProviderFetch: false,
     sections: [
-        {
+      {
         title: "What this integration can do",
         description:
           "Create and update work items (User Stories, Tasks, Bugs) in selected projects, including Area Path and Iteration Path.",
@@ -67,7 +67,7 @@ export const AllIntegrationOptions: IntegrationOption[] = [
     title: "Outlook",
     description: "Connect to Outlook",
     iconURL: "/Microsoft_Office_Outlook_(2018–2024).svg.png",
-    connectionUrl: "/api/integrations/microsoft-graph/connect",
+    connectionUrl: "/api/integrations/Outlook/connect",
     providerId: "outlook",
     needsProviderFetch: false,
     actions: AllOutlookActions,
@@ -80,13 +80,14 @@ export const AllIntegrationOptions: IntegrationOption[] = [
     title: "SharePoint",
     description: "Connect to SharePoint",
     iconURL: "/Microsoft_Office_SharePoint_(2019–2025).svg.png",
-    connectionUrl: "/api/integrations/microsoft-graph/connect",
+    connectionUrl: "/api/integrations/SharePoint/connect",
     providerId: "sharepoint",
     actions: AllSharePointActions,
     needsProviderFetch: true,
     sections: [
       { title: "Document access", description: "Browse and reference SharePoint documents." },
     ],
+    commingSoon: true
   },
   {
     title: "Jira",
@@ -127,8 +128,9 @@ export const AllIntegrationOptions: IntegrationOption[] = [
     providerId: "clickup",
     actions: AllClickUpActions,
     needsProviderFetch: true,
+    commingSoon: true,
     sections: [
-      {title:"Bla bla bla", description:" bla description"}
+      { title: "Bla bla bla", description: " bla description" }
     ]
   }
 ];
