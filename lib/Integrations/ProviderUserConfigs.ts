@@ -5,7 +5,7 @@ import { OutlookSettings } from "./Outlook/Configuration";
 import { JiraSettings } from "./Jira/Configuration";
 import { ClickUpSettings } from "./ClickUp/Configuration";
 
-export type ProviderId = "azure-devops" | "outlook" | "sharepoint" | "jira" | "clickup";
+export type ProviderId ="Export" | "azure-devops" | "outlook" | "sharepoint" | "jira" | "clickup";
 export type ProviderConfigByProviderId = {
   "azure-devops": AzureDevopsSettings;
   outlook: OutlookSettings;
@@ -13,6 +13,7 @@ export type ProviderConfigByProviderId = {
   jira: JiraSettings;
   notion: Record<string, unknown>;
   "clickup":ClickUpSettings;
+  Export:Record<string,number>;
 };
 
 export type ProviderConfigItem =

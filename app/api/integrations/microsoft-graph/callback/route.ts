@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { ProviderOptions } from "../connect/route";
 import { encrypt } from "@/lib/cryptation";
-import { IntegrationOptionsTitle } from "@/lib/Integrations/Types";
 import { ProviderId } from "@/lib/Integrations/ProviderUserConfigs";
 
 
@@ -11,7 +9,8 @@ export const displayNameByProvider: Record<ProviderId, string> = {
     "azure-devops": "Azure Devops",
     sharepoint: "SharePoint",
     jira: "Jira",
-    clickup: "Click Up"
+    clickup: "Click Up",
+    Export:"Export"
 };
 
 async function exchangeCodeForToken(params: {

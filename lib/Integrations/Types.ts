@@ -34,7 +34,7 @@ export interface IntegrationOption {
   title: string;
   iconURL: string;
   description: string;
-  connectionUrl: string;
+  connectionUrl?: string;
   providerId: ProviderId;
   actions: Action[];
   needsProviderFetch:boolean
