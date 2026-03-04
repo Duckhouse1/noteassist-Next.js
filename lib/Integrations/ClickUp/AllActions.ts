@@ -10,6 +10,7 @@ export const AllClickUpActions: Action[] = [
         key: "clickup.createtasks",
         description: "Create ClickUp Actions directly from your notes",
         createText: "Create tasks",
-        integration:"clickup"
+        integration:"clickup",
+        responseType:"clickup_tasks"
     }
 ]

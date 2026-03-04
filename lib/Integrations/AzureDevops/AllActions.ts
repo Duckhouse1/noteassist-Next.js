@@ -10,5 +10,6 @@ export const AllADOActions: Action[] = [
         description: "Create work items in specific project, area and iterations",
         createText: "Create work items",
         integration: "azure-devops",
+        responseType: "devops_tasks"
     },
 ]

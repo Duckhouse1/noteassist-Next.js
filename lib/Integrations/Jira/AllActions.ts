@@ -7,5 +7,6 @@ export const AllJiraActions: Action[] = [
         description: "Extract tasks from your notes and create issues in Jira",
         createText: "Create Jira issues",
         integration: "jira",
+        responseType:"jira_tasks"
     },
 ];

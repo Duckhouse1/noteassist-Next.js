@@ -53,7 +53,7 @@ export default function DashboardClient({ company, mode, memberShip }: { company
     const [workspaceConfig, setWorkspaceConfig] = useState<WorkspaceConfig | null>(null);
     const [IntegrationConnections, setIntegrationConnections] = useState<IntegrationConnection[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    const [actionAISolutions, setActionAISolutions] = useState<Map<string, OpenAIResponse>>(() => new Map());
+    const [actionAISolutions, setActionAISolutions] = useState<Map<string, OpenAIResponse[]>>(() => new Map());
     const isPersonalOrg = mode === "personal";
 
     const LoadIntegrationState = async () => {
@@ -72,7 +72,7 @@ export default function DashboardClient({ company, mode, memberShip }: { company
             console.log("Error fetching integration state:", error);
         }
     };
- 
+
     const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
         setToast({ message, type });
         if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
@@ -158,7 +158,11 @@ export default function DashboardClient({ company, mode, memberShip }: { company
     const setSolutionForKey = useCallback((key: string, value: OpenAIResponse) => {
         setActionAISolutions((prev) => {
             const next = new Map(prev);
-            next.set(key, value);
+            const existing = next.get(key) ?? [];
+            const updated = existing.some(r => r.type === value.type)
+                ? existing.map(r => r.type === value.type ? value : r)
+                : [...existing, value];
+            next.set(key, updated);
             return next;
         });
     }, []);
@@ -173,18 +177,21 @@ export default function DashboardClient({ company, mode, memberShip }: { company
             )
         )
             .then((results) => {
-                const responseMap = new Map<string, OpenAIResponse>();
+                const responseMap = new Map<string, OpenAIResponse[]>();
                 results.forEach(({ action, response }) => {
-                    if (action.integration != null) {
-                        responseMap.set(action.integration, response);
-                    } else {
-                        responseMap.set(action.key, response);
-                    }
+                    const key = action.integration ?? action.key;
+                    const existing = responseMap.get(key) ?? [];
+                    responseMap.set(key, [...existing, response]);
                 });
-                console.log("Reponse map");
-                console.log(responseMap);
                 setActionAISolutions(responseMap);
                 setIsLoading(false);
+                results.forEach(({ action, response }) => {
+                    console.log("action.key:", action.key, "action.responseType:", action.responseType, "response.type:", response.type);
+                    const key = action.integration ?? action.key;
+                    const existing = responseMap.get(key) ?? [];
+                    responseMap.set(key, [...existing, response]);
+                });
+                console.log("responseMap:", responseMap)
                 setCurrentPage("actions");
             })
             .catch((error) => {
@@ -226,7 +233,7 @@ export default function DashboardClient({ company, mode, memberShip }: { company
         <OpenAIActionSolutionsMapContext.Provider
             value={{ OpenAISolutionsMap: actionAISolutions, setOpenAISolutionsMap: setSolutionForKey }}
         >
-            <main className="h-screen bg-[#F4F5F7] overflow-hidden flex flex-col">
+            <main className="h-screen bg-white overflow-hidden flex flex-col">
                 <Toast
                     message={toast?.message ?? ""}
                     type={toast?.type ?? "info"}

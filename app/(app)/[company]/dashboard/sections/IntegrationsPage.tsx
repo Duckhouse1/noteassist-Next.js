@@ -168,7 +168,7 @@ export default function IntegrationsPage({ company }: IntegrationPageProps) {
           <h1 className="text-gray-400 mb-4">All integrations:</h1>
 
           <div className="border border-gray-200 rounded-2xl p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 auto-rows-fr">
               {AllIntegrationOptions.map((card) => (
                 <IntegrationOptionCard
                   onClick={() => setSelectedCard(card)}

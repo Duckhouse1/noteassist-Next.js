@@ -99,8 +99,11 @@ export default function ClickUpPreBody({ integrationKey }: { integrationKey: str
 
     // ✅ Render is now clean — no tree logic mixed in
     return (
-        <div className="w-full flex flex-row gap-2 items-stretch h-[64vh] min-h-0">
-            <div className="flex-3 min-w-0 max-h-[calc(100vh-160px)]">
+        <div
+  className="w-full flex flex-row gap-2 items-stretch min-h-0
+             h-[clamp(320px,55vh,640px)]"
+>          
+                <div className="flex-3 min-w-0 max-h-[calc(100vh-160px)]">
                 <ClickUpTaskPane
                     elements={tree.elements}
                     onClick={tree.select}

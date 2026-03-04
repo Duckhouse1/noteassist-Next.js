@@ -1,175 +1,105 @@
-import { useContext } from "react"
-import { DevOpsPreBody } from "./IntegrationBodys/DevOps/DevOpsPreBody"
-import { ActionExecutionContext, OpenAIActionSolutionsMapContext } from "@/app/Contexts"
-import { OutLookDraft } from "./IntegrationBodys/Outlook/OutLookDraft"
-import { DevOpsResponse, OutlookMeeting } from "@/app/types/OpenAI"
-import { JiraPreBody } from "./IntegrationBodys/Jira/JiraPreBody"
-import { ProviderId } from "@/lib/Integrations/ProviderUserConfigs"
-import ClickUpPreBody from "./IntegrationBodys/ClickUp/ClickUpPreBody"
-import { OutlookMeetingPreBody } from "./IntegrationBodys/Outlook/OutlookMeetingPreBody"
+import { useContext } from "react";
+import { ActionExecutionContext, OpenAIActionSolutionsMapContext } from "@/app/Contexts";
+import { ProviderId } from "@/lib/Integrations/ProviderUserConfigs";
+import { integrationRegistry } from "./IntegrationBodys/Integrationregistry";
 
 
+export const IntegrationBody = ({ IntegrationOption, responseType, onActionComplete, }: {
+    IntegrationOption: ProviderId;
+    responseType?: string;
+    onActionComplete: () => void;
+}) => {
 
-export const IntegrationBody = ({ IntegrationOption, onActionComplete }: { IntegrationOption: ProviderId; onActionComplete: () => void; }) => {
-    const { OpenAISolutionsMap } = useContext(OpenAIActionSolutionsMapContext)
-    const { isExecuting, isCompleted, executeAction } = useContext(ActionExecutionContext)
-    const response = OpenAISolutionsMap.get(IntegrationOption)
+    const { OpenAISolutionsMap } = useContext(OpenAIActionSolutionsMapContext);
+    const { isExecuting, isCompleted, executeAction } = useContext(ActionExecutionContext);
 
-    const handleCreate = async () => {
-        if (isExecuting || isCompleted) return;
+    const response = OpenAISolutionsMap.get(IntegrationOption);
+    const entries = integrationRegistry[IntegrationOption] ?? [];
 
-        // Signal parent that execution started (updates step circle)
-        executeAction();
+    // Find den entry hvis responseType matcher det AI returnerede
+    const responses = OpenAISolutionsMap.get(IntegrationOption) ?? [];
+    const matchedEntries = entries.filter(entry =>
+        responses.some(r => r.type === entry.responseType) &&
+        (responseType ? entry.responseType === responseType : true)
+    );
 
-        try {
-            const data = response?.content as DevOpsResponse
-             if (IntegrationOption === "jira") {
-                await fetch("/api/integrations/jira/createIssues", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        elements: data.elements,
-                        cloudId: "", // TODO: read from user config
-                        projectKey: "", // TODO: read from user config
-                    })
-                })
-            } else {
-            await fetch("/api/integrations/azure-devops/CreateWorkItems", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    elements: data.elements
-                })
-            })
-        }
-        } catch (err) {
-            console.error("Action failed:", err)
-        } finally {
-            // Signal parent that execution finished (marks completed, advances step)
-            onActionComplete();
-        }
-    }
+    if (matchedEntries.length === 0) return null;
 
     return (
         <>
-            {response?.type === "devops_tasks" && (
-                <>
-                    <DevOpsPreBody integrationKey={IntegrationOption} />
-                    <button className={[
-                            "ml-4 mt-3 p-2 px-7 rounded-2xl font-semibold transition-all duration-300 inline-flex items-center gap-2",
-                            isCompleted
-                                ? "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300 cursor-default"
-                                : isExecuting
-                                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                                    : "bg-black text-white cursor-pointer hover:bg-gray-800",
-                        ].join(" ")}
-                        disabled={isExecuting || isCompleted}
-                        onClick={handleCreate}
-                    >
-                        {isExecuting ? (
-                            <>
-                                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
-                                    <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                                </svg>
-                                Creating…
-                            </>
-                        ) : isCompleted ? (
-                            <>
-                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none">
-                                    <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                                Performed
-                            </>
-                        ) : (
-                            <>Create in {IntegrationOption}</>
-                        )}
-                    </button>
-                </>
-            )}
-            {IntegrationOption === "outlook" && response?.type === "email_draft" && (
-                <>
-                    <OutLookDraft emailDraft={response.content} integrationKey={IntegrationOption} />
-                </>
-            )}
-            {IntegrationOption === "outlook" && response?.type === "outlook_meeting" && (
-                <>
-                    <OutlookMeetingPreBody meeting={response.content as OutlookMeeting} integrationKey={IntegrationOption} />
-                </>
-            )}
-            {response?.type === "jira_tasks" && (
-                <>
-                    <JiraPreBody integrationKey={IntegrationOption} />
-                    <button
-                        className={[
-                            "ml-4 mt-3 p-2 px-7 rounded-2xl font-semibold transition-all duration-300 inline-flex items-center gap-2",
-                            isCompleted
-                                ? "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300 cursor-default"
-                                : isExecuting
-                                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                                    : "bg-black text-white cursor-pointer hover:bg-gray-800",
-                        ].join(" ")}
-                        disabled={isExecuting || isCompleted}
-                        onClick={handleCreate}
-                    >
-                        {isExecuting ? (
-                            <>
-                                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
-                                    <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                                </svg>
-                                Creating…
-                            </>
-                        ) : isCompleted ? (
-                            <>
-                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none">
-                                    <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                                Performed
-                            </>
-                        ) : (
-                            <>Create in Jira</>
-                        )}
-                    </button>
-                </>
-            )}
-             {response?.type === "clickup_tasks" && (
-                <>
-                    <ClickUpPreBody integrationKey={IntegrationOption} />
-                    <button
-                        className={[
-                            "ml-4 mt-3 p-2 px-7 rounded-2xl font-semibold transition-all duration-300 inline-flex items-center gap-2",
-                            isCompleted
-                                ? "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300 cursor-default"
-                                : isExecuting
-                                    ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                                    : "bg-black text-white cursor-pointer hover:bg-gray-800",
-                        ].join(" ")}
-                        disabled={isExecuting || isCompleted}
-                        onClick={handleCreate}
-                    >
-                        {isExecuting ? (
-                            <>
-                                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                                    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
-                                    <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                                </svg>
-                                Creating…
-                            </>
-                        ) : isCompleted ? (
-                            <>
-                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none">
-                                    <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                                Performed
-                            </>
-                        ) : (
-                            <>Create in ClickUp</>
-                        )}
-                    </button>
-                </>
-            )}
+            {matchedEntries.map((entry) => {
+                const response = responses.find(r => r.type === entry.responseType)!;
 
+                const handleCreate = async () => {
+                    if (isExecuting || isCompleted) return;
+                    executeAction();
+                    try {
+                        await entry.createFn?.(response);
+                    } catch (err) {
+                        console.error("Action failed:", err);
+                    } finally {
+                        onActionComplete();
+                    }
+                };
+
+                const PreBody = entry.component;
+
+                return (
+                    <div key={entry.responseType}>
+                        <PreBody integrationKey={IntegrationOption} responseType={entry.responseType} />
+                        {entry.showCreateButton && (
+                            <CreateButton
+                                isExecuting={isExecuting}
+                                isCompleted={isCompleted}
+                                onClick={handleCreate}
+                                label={entry.createLabel ?? `Create in ${IntegrationOption}`}
+                            />
+                        )}
+                    </div>
+                );
+            })}
         </>
-    )
+    );
+}
+type CreateButtonProps = {
+    isExecuting: boolean;
+    isCompleted: boolean;
+    onClick: () => void;
+    label: string;
+};
+
+export function CreateButton({ isExecuting, isCompleted, onClick, label }: CreateButtonProps) {
+    return (
+        <button
+            className={[
+                "ml-4 mt-3 p-2 px-7 rounded-2xl font-semibold transition-all duration-300 inline-flex items-center gap-2",
+                isCompleted
+                    ? "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300 cursor-default"
+                    : isExecuting
+                        ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                        : "bg-black text-white cursor-pointer hover:bg-gray-800",
+            ].join(" ")}
+            disabled={isExecuting || isCompleted}
+            onClick={onClick}
+        >
+            {isExecuting ? (
+                <>
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" className="opacity-25" />
+                        <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
+                    Creating…
+                </>
+            ) : isCompleted ? (
+                <>
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none">
+                        <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    Performed
+                </>
+            ) : (
+                <>{label}</>
+            )}
+        </button>
+    );
 }

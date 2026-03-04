@@ -15,11 +15,11 @@ export default function IntegrationOptionCard({
   return (
     <div
       className={`
-        relative h-17 flex flex-col justify-between border border-slate-200 bg-white p-2 shadow-sm transition-all duration-300
-        ${isComingSoon
+    relative h-full flex flex-col justify-between border border-slate-200 bg-white p-2 shadow-sm transition-all duration-300
+    ${isComingSoon
           ? "opacity-70 cursor-not-allowed"
           : "hover:bg-gray-100 cursor-pointer hover:shadow-md"}
-      `}
+  `}
       onClick={!isComingSoon ? onClick : undefined}
     >
       {/* Smaller Corner Ribbon */}
@@ -42,7 +42,7 @@ export default function IntegrationOptionCard({
               shadow-sm
             "
           >
-             ~ Coming Soon
+            ~ Coming Soon
           </div>
         </div>
       )}

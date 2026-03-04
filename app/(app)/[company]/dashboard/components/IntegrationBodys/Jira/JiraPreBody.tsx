@@ -7,10 +7,11 @@ import { OpenAIActionSolutionsMapContext } from "@/app/Contexts";
 export const JiraPreBody = ({ integrationKey }: { integrationKey: string }) => {
     const { OpenAISolutionsMap } = useContext(OpenAIActionSolutionsMapContext);
     const response = OpenAISolutionsMap.get(integrationKey);
+    
+    const type = response?.find((type) => type.type === "jira_tasks")
+    if (!type) return null;
 
-    if (response?.type !== "jira_tasks") return null;
-
-    const data = response.content as DevOpsResponse;
+    const data = type.content as DevOpsResponse;
     const elements = data.elements ?? [];
 
     if (elements.length === 0) {
@@ -22,7 +23,7 @@ export const JiraPreBody = ({ integrationKey }: { integrationKey: string }) => {
     }
 
     return (
-        <div className="flex flex-col gap-3">
+        <div className=" overflow flex flex-col gap-3 min-h-0 h-[clamp(360px,55dvh,700px)]">
             <div className="flex items-center gap-2 mb-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
                     <svg className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="currentColor">
@@ -38,7 +39,7 @@ export const JiraPreBody = ({ integrationKey }: { integrationKey: string }) => {
                 </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden divide-y divide-slate-100">
+            <div className="rounded-2xl border border-slate-200 bg-white overflow-auto divide-y divide-slate-100">
                 {elements.map((el) => (
                     <JiraElementNode key={el.id} element={el} depth={0} />
                 ))}

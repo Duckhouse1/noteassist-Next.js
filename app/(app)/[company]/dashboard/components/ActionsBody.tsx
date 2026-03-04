@@ -9,7 +9,7 @@ import { Action } from "@/lib/Integrations/Types";
 
 export const ActionsBody = ({ action, onActionComplete }: { action: Action; onActionComplete: () => void; }) => {
     const { OpenAISolutionsMap } = useContext(OpenAIActionSolutionsMapContext)
-    
+
     const { show } = useContext(ShowNotesBodyContext)
 
     if (show) {
@@ -18,8 +18,11 @@ export const ActionsBody = ({ action, onActionComplete }: { action: Action; onAc
     if (action.integration) {
         return (
             <div>
-                <IntegrationBody IntegrationOption={action.integration} onActionComplete={onActionComplete} />
-            </div >
+                <IntegrationBody
+                    IntegrationOption={action.integration}
+                    responseType={action.responseType}  // ← ny prop
+                    onActionComplete={onActionComplete}
+                />            </div >
         )
     }
 

@@ -23,7 +23,7 @@ export const AllIntegrationOptions: IntegrationOption[] = [
     ]
   },
   {
-    title: "Azure DevOps",
+    title: "DevOps",
     description: "Connect to Devops",
     iconURL: "/10261-icon-service-Azure-DevOps.svg",
     connectionUrl: "/api/integrations/azure-devops/connect",
@@ -87,7 +87,7 @@ export const AllIntegrationOptions: IntegrationOption[] = [
     sections: [
       { title: "Document access", description: "Browse and reference SharePoint documents." },
     ],
-    commingSoon: true
+    commingSoon: false
   },
   {
     title: "Jira",
@@ -128,7 +128,7 @@ export const AllIntegrationOptions: IntegrationOption[] = [
     providerId: "clickup",
     actions: AllClickUpActions,
     needsProviderFetch: true,
-    commingSoon: true,
+    commingSoon: false,
     sections: [
       { title: "Bla bla bla", description: " bla description" }
     ]
