@@ -23,7 +23,7 @@ export const JiraPreBody = ({ integrationKey }: { integrationKey: string }) => {
     }
 
     return (
-        <div className=" overflow flex flex-col gap-3 min-h-0 h-[clamp(360px,55dvh,700px)]">
+        <div className=" overflow flex flex-col gap-3 min-h-0 h-[clamp(360px,65dvh,1000px)]">
             <div className="flex items-center gap-2 mb-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
                     <svg className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="currentColor">

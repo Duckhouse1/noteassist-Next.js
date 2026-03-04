@@ -101,7 +101,7 @@ export default function ClickUpPreBody({ integrationKey }: { integrationKey: str
     return (
         <div
   className="w-full flex flex-row gap-2 items-stretch min-h-0
-             h-[clamp(320px,55vh,640px)]"
+             h-[clamp(320px,65vh,640px)]"
 >          
                 <div className="flex-3 min-w-0 max-h-[calc(100vh-160px)]">
                 <ClickUpTaskPane
