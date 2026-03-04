@@ -10,7 +10,6 @@ export const displayNameByProvider: Record<ProviderId, string> = {
     sharepoint: "SharePoint",
     jira: "Jira",
     clickup: "Click Up",
-    Export:"Export"
 };
 
 async function exchangeCodeForToken(params: {
