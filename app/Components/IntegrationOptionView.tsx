@@ -31,15 +31,10 @@ interface IntegrationOptionViewProps {
   configItem: ProviderConfigItem | null;
 }
 
-export default function IntegrationOptionView({
-  option,
-  company,
-  connection,
-  enabledMap,
-  onToggleAction,
-  onConfigChange,
-  configItem,
-}: IntegrationOptionViewProps) {
+export default function IntegrationOptionView({option,company,connection,enabledMap,
+  onToggleAction,onConfigChange,configItem,}: IntegrationOptionViewProps) {
+
+    
   const [providerData, setProviderData] = useState<ProviderFetchResult | null>(null);
   const [isFetchingProviderData, setIsFetchingProviderData] = useState(false);
 

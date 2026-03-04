@@ -247,6 +247,7 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
                                 },
                             }}>
                                 <ActionsBody
+                                    key={currentIndex}   // ← tvinger React til at mounte en frisk komponent
                                     action={currentAction}
                                     onActionComplete={finishCurrentAction}
                                 />

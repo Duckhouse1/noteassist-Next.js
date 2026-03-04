@@ -58,8 +58,9 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
     const [selectedElement, setSelectedElement] = useState<SelectedElementProps | null>(null);
     // Pull initial features from the map (if any)
     const saved = OpenAISolutionsMap.get(integrationKey);
+    const solution = saved?.find((sol) => sol.type === "devops_tasks")
     const savedElements =
-        saved?.type === "devops_tasks" ? saved.content.elements : [];
+        solution?.type === "devops_tasks" ? solution.content.elements : [];
    
     const projectId = selectedElement?.data.Project?.id ? selectedElement?.data.Project?.id : savedElements[0]?.Project?.id ?? selectedProject?.id ?? "";
     const { value: projects, setValue: setProjects } = useSessionStorageState<DevOpsProjectsProps[]>({

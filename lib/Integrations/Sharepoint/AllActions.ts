@@ -8,7 +8,8 @@ export const AllSharePointActions: Action[] = [
         title: "Upload file to list",
         description: "Have AI create a full file based on your notes, and upload it",
         createText: "Create file in list",
-        integration: "sharepoint"
+        integration: "sharepoint",
+        
     },
 
 ]

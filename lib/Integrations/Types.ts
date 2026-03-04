@@ -1,5 +1,6 @@
 import { ActionKey } from "@/app/(app)/[company]/dashboard/sections/ConfigurationPage";
 import { ProviderId } from "./ProviderUserConfigs";
+import { OpenAIResponse } from "@/app/types/OpenAI";
 
 export type IntegrationOptionsTitle =
   | "Azure-Devops"
@@ -8,7 +9,7 @@ export type IntegrationOptionsTitle =
   | "Jira"
   | "Notion";
 
-  // export type ProviderId = "azure-devops" | "outlook" | "sharepoint" | "jira" | "notion" | "click-up";
+// export type ProviderId = "azure-devops" | "outlook" | "sharepoint" | "jira" | "notion" | "click-up";
 export interface IntegrationConnection {
   id: string;
   displayName: string;
@@ -16,12 +17,13 @@ export interface IntegrationConnection {
 }
 // This is NOT Prisma Action, NOT frontPage Action.
 export interface Action {
-    key: string;
-    title: string;
-    description: string;
-    createText: string;
-    integration?: ProviderId;
-    UserConfig?: string
+  key: string;
+  title: string;
+  description: string;
+  createText: string;
+  responseType?: OpenAIResponse["type"]; // ← tilføj denne
+  integration?: ProviderId;
+  UserConfig?: string
 }
 
 export interface IntegrationViewSection {
@@ -37,10 +39,10 @@ export interface IntegrationOption {
   connectionUrl?: string;
   providerId: ProviderId;
   actions: Action[];
-  needsProviderFetch:boolean
+  needsProviderFetch: boolean
   UserConfigFields?: UserConfigField[];     // ✅ schema/metadata only
   sections: IntegrationViewSection[];
-  commingSoon?:boolean
+  commingSoon?: boolean
 }
 
 export type FieldType = "text" | "select" | "multiselect" | "boolean";

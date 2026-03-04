@@ -4,7 +4,6 @@ import { useContext, useState } from "react";
 import { OutlookMeeting } from "@/app/types/OpenAI";
 import { OpenAIActionSolutionsMapContext, ShowNotesBodyContext } from "@/app/Contexts";
 import { NotesBody } from "../../NotesBody";
-import { ProviderId } from "@/lib/Integrations/ProviderUserConfigs";
 
 /* ─── tiny helpers ─── */
 function toLocalDateTimeValue(iso: string) {
@@ -152,13 +151,8 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 /* ─── Main component ─── */
-export const OutlookMeetingPreBody = ({
-    meeting,
-    integrationKey,
-}: {
-    meeting: OutlookMeeting;
-    integrationKey: ProviderId;
-}) => {
+export const OutlookMeetingPreBody = ({ integrationKey, responseType }: { integrationKey: string; responseType: string }) => {
+
     const { show } = useContext(ShowNotesBodyContext);
     const { OpenAISolutionsMap, setOpenAISolutionsMap } = useContext(OpenAIActionSolutionsMapContext);
 
@@ -174,27 +168,28 @@ export const OutlookMeetingPreBody = ({
     const [newAttendeeInput, setNewAttendeeInput] = useState("");
     const [attendeeEditMode, setAttendeeEditMode] = useState(false);
 
-    // Derive current meeting from context (so edits persist in the map)
-    const stored = OpenAISolutionsMap.get(integrationKey);
-    const current: OutlookMeeting =
-        stored?.type === "outlook_meeting" ? stored.content : meeting;
+    // Henter data selv fra context — ingen meeting prop nødvendig
+     const responses = OpenAISolutionsMap.get(integrationKey) ?? [];
+    const match = responses.find(r => r.type === responseType);
+    if (!match || match.type !== "outlook_meeting") return null;
 
+    const content: OutlookMeeting = match.content
     const patch = (partial: Partial<OutlookMeeting>) => {
         setOpenAISolutionsMap(integrationKey, {
             type: "outlook_meeting",
-            content: { ...current, ...partial },
+            content: { ...content, ...partial },
         });
     };
 
     const addAttendee = () => {
         const email = newAttendeeInput.trim();
-        if (!email || current.attendees.includes(email)) return;
-        patch({ attendees: [...current.attendees, email] });
+        if (!email || content.attendees.includes(email)) return;
+        patch({ attendees: [...content.attendees, email] });
         setNewAttendeeInput("");
     };
 
     const removeAttendee = (email: string) => {
-        patch({ attendees: current.attendees.filter((a) => a !== email) });
+        patch({ attendees: content.attendees.filter((a) => a !== email) });
     };
 
     const handleScheduleConfirmed = async () => {
@@ -204,7 +199,7 @@ export const OutlookMeetingPreBody = ({
             const res = await fetch("/api/integrations/Outlook/ScheduleMeeting", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(current),
+                body: JSON.stringify(content),
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
@@ -283,7 +278,7 @@ export const OutlookMeetingPreBody = ({
                             <label className="mb-1.5 block text-sm font-semibold text-slate-700">Meeting Title</label>
                             <input
                                 type="text"
-                                value={current.title}
+                                value={content.title}
                                 onChange={(e) => patch({ title: e.target.value })}
                                 className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
                             />
@@ -295,7 +290,7 @@ export const OutlookMeetingPreBody = ({
                                 <label className="mb-1.5 block text-sm font-semibold text-slate-700">Start</label>
                                 <input
                                     type="datetime-local"
-                                    value={toLocalDateTimeValue(current.startDateTime)}
+                                    value={toLocalDateTimeValue(content.startDateTime)}
                                     onChange={(e) => patch({ startDateTime: fromLocalDateTimeValue(e.target.value) })}
                                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
                                 />
@@ -304,7 +299,7 @@ export const OutlookMeetingPreBody = ({
                                 <label className="mb-1.5 block text-sm font-semibold text-slate-700">End</label>
                                 <input
                                     type="datetime-local"
-                                    value={toLocalDateTimeValue(current.endDateTime)}
+                                    value={toLocalDateTimeValue(content.endDateTime)}
                                     onChange={(e) => patch({ endDateTime: fromLocalDateTimeValue(e.target.value) })}
                                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
                                 />
@@ -312,9 +307,9 @@ export const OutlookMeetingPreBody = ({
                         </div>
 
                         {/* Duration hint */}
-                        {current.startDateTime && current.endDateTime && (
+                        {content.startDateTime && content.endDateTime && (
                             <p className="text-xs text-slate-400 -mt-2">
-                                Duration: {durationMinutes(current.startDateTime, current.endDateTime)}
+                                Duration: {durationMinutes(content.startDateTime, content.endDateTime)}
                             </p>
                         )}
 
@@ -323,7 +318,7 @@ export const OutlookMeetingPreBody = ({
                             <label className="mb-1.5 block text-sm font-semibold text-slate-700">Location <span className="text-slate-400 font-normal">(optional)</span></label>
                             <input
                                 type="text"
-                                value={current.location ?? ""}
+                                value={content.location ?? ""}
                                 onChange={(e) => patch({ location: e.target.value })}
                                 placeholder="e.g. Conference Room B or leave blank"
                                 className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
@@ -332,7 +327,7 @@ export const OutlookMeetingPreBody = ({
 
                         {/* Online meeting toggle */}
                         <Toggle
-                            checked={current.isOnlineMeeting}
+                            checked={content.isOnlineMeeting}
                             onChange={(v) => patch({ isOnlineMeeting: v })}
                             label="Add Teams meeting link"
                         />
@@ -341,10 +336,10 @@ export const OutlookMeetingPreBody = ({
                         <div>
                             <label className="mb-2 block text-sm font-semibold text-slate-700">Attendees</label>
                             <div className="flex flex-wrap gap-2 mb-3">
-                                {current.attendees.map((email) => (
+                                {content.attendees.map((email) => (
                                     <AttendeePill key={email} email={email} onRemove={() => removeAttendee(email)} />
                                 ))}
-                                {current.attendees.length === 0 && (
+                                {content.attendees.length === 0 && (
                                     <p className="text-xs text-slate-400">No attendees added yet.</p>
                                 )}
                             </div>
@@ -370,7 +365,7 @@ export const OutlookMeetingPreBody = ({
                         <div>
                             <label className="mb-1.5 block text-sm font-semibold text-slate-700">Agenda / Description</label>
                             <textarea
-                                value={current.description}
+                                value={content.description}
                                 onChange={(e) => patch({ description: e.target.value })}
                                 rows={5}
                                 className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 resize-none"
@@ -393,7 +388,7 @@ export const OutlookMeetingPreBody = ({
             {/* Confirm modal */}
             {showConfirm && (
                 <ScheduleConfirmModal
-                    meeting={current}
+                    meeting={content}
                     onConfirm={handleScheduleConfirmed}
                     onCancel={() => setShowConfirm(false)}
                     isScheduling={isScheduling}

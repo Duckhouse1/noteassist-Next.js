@@ -347,7 +347,7 @@ const extractInfoBasedOnAction = async (
                 case "":
             }
         case "outlook": {
-            if (action.key === "outlook.ScheduleMeeting") {
+            if (action.responseType === "outlook_meeting") {
                 const content = await OpenAIOutlookMeetingExtraction(noteContent);
                 return { type: "outlook_meeting", content };
             }

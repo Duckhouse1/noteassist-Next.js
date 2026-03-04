@@ -55,13 +55,13 @@ export const CurrentSiteContext = createContext<CurrentSite>({
 
 
 export type OpenAIActionSolutionsMapContextProps = {
-    OpenAISolutionsMap: Map<string, OpenAIResponse>;
+    OpenAISolutionsMap: Map<string, OpenAIResponse[]>;
     setOpenAISolutionsMap: (key: string, value: OpenAIResponse) => void;
 };
 
 export const OpenAIActionSolutionsMapContext =
     createContext<OpenAIActionSolutionsMapContextProps>({
-        OpenAISolutionsMap: new Map<string, OpenAIResponse>(),
+        OpenAISolutionsMap: new Map<string, OpenAIResponse[]>(),
         setOpenAISolutionsMap: () => { },
     });
 
