@@ -34,7 +34,8 @@ export function useElementTree<T extends TreeNode>({
     const { OpenAISolutionsMap, setOpenAISolutionsMap } = useContext(OpenAIActionSolutionsMapContext);
 
     const saved = OpenAISolutionsMap.get(integrationKey);
-    const savedElements = saved?.type === responseType ? extractElements(saved) : [];
+    const solution = saved?.find((sol) => sol.type === responseType)
+    const savedElements = solution?.type === responseType ? extractElements(solution) : [];
 
     const { value: elements, setValue: setElements } = useSessionStorageState<T[]>({
         key: `${storagePrefix}:aielements:${integrationKey}`,
@@ -53,7 +54,8 @@ export function useElementTree<T extends TreeNode>({
         prevKeyRef.current = integrationKey;
 
         const saved = OpenAISolutionsMap.get(integrationKey);
-        const freshElements = saved?.type === responseType ? extractElements(saved) : [];
+        const solution = saved?.find((sol) => sol.type === responseType)
+        const freshElements = solution?.type === responseType ? extractElements(solution) : [];
 
         setElements(freshElements);
         // eslint-disable-next-line react-hooks/set-state-in-effect
