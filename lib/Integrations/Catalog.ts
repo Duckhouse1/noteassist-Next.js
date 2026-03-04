@@ -4,24 +4,9 @@ import { AllJiraActions } from "./Jira/AllActions";
 import { IntegrationOption } from "./Types";
 import { AllSharePointActions } from "./Sharepoint/AllActions";
 import { AllClickUpActions } from "./ClickUp/AllActions";
-import { AllExportActions } from "./Exports/AllActions";
 
 export const AllIntegrationOptions: IntegrationOption[] = [
-  {
-    title: "Export",
-    description: "Export notes local",
-    iconURL: "/export-icon.svg",
-    providerId: "Export",
-    actions: AllExportActions,
-    needsProviderFetch: false,
-    sections: [
-      {
-        title: "What this integration can do",
-        description:
-          "Create and update work items (User Stories, Tasks, Bugs) in selected projects, including Area Path and Iteration Path.",
-      },
-    ]
-  },
+ 
   {
     title: "DevOps",
     description: "Connect to Devops",

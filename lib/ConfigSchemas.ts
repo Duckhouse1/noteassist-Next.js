@@ -57,12 +57,14 @@ export const ClickUpSchema : z.ZodType<ClickUpSettings> = z.object({
   DefaultWorkSpaceID: z.string().default(""),
 });
 
+
+
 export const ProviderSchemas = {
   "azure-devops": AzureDevopsConfigSchema,
   outlook: OutlookConfigSchema,
   jira: JiraConfigSchema,
   sharepoint:SharePointSchema,
-  clickup:ClickUpSchema
+  clickup:ClickUpSchema,
 } as const;
 
 export type ProviderKey = keyof typeof ProviderSchemas;

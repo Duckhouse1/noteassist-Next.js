@@ -5,7 +5,7 @@ import { OutlookSettings } from "./Outlook/Configuration";
 import { JiraSettings } from "./Jira/Configuration";
 import { ClickUpSettings } from "./ClickUp/Configuration";
 
-export type ProviderId ="Export" | "azure-devops" | "outlook" | "sharepoint" | "jira" | "clickup";
+export type ProviderId = "azure-devops" | "outlook" | "sharepoint" | "jira" | "clickup";
 export type ProviderConfigByProviderId = {
   "azure-devops": AzureDevopsSettings;
   outlook: OutlookSettings;
