@@ -4,36 +4,38 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { withRetry } from "./withDbRetry";
 
 /**
  * Ensure the user has at least one organization.
  * If not, create a personal org and membership.
  */
 async function ensurePersonalOrg(userId: string) {
-  const existing = await prisma.membership.findFirst({
-    where: { userId },
-    include: { organization: true },
-    orderBy: { createdAt: "asc" },
-  });
+  const existing = await withRetry(() =>
+    prisma.membership.findFirst({
+      where: { userId },
+      include: { organization: true },
+      orderBy: { createdAt: "asc" },
+    })
+  );
 
   if (existing) return existing.organization;
 
-  const org = await prisma.organization.create({
-    data: {
-      name: "MyWorkSpace",
-      slug: `user-${userId}`,
-      members: {
-        create: {
-          userId,
-          role: "owner",
+  return withRetry(() =>
+    prisma.organization.create({
+      data: {
+        name: "MyWorkSpace",
+        slug: `user-${userId}`,
+        members: {
+          create: {
+            userId,
+            role: "owner",
+          },
         },
       },
-    },
-  });
-
-  return org;
+    })
+  );
 }
-
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
@@ -50,10 +52,13 @@ export const authOptions: NextAuthOptions = {
         const password = credentials?.password;
         if (!email || !password) return null;
 
-        const user = await prisma.user.findUnique({
-          where: { email },
-          select: { id: true, email: true, name: true, passwordHash: true },
-        });
+        const user = await withRetry(() =>
+          prisma.user.findUnique({
+            where: { email },
+            select: { id: true, email: true, name: true, passwordHash: true },
+          })
+        );
+
 
         if (!user?.passwordHash) return null;
 
@@ -67,7 +72,7 @@ export const authOptions: NextAuthOptions = {
 
     AzureADProvider({
       clientId: process.env.AZURE_AD_CLIENT_ID ?? "",
-      clientSecret: process.env.AZURE_AD_CLIENT_SECRET ?? "", 
+      clientSecret: process.env.AZURE_AD_CLIENT_SECRET ?? "",
       tenantId: process.env.AZURE_AD_TENANT_ID ?? "",
       authorization: {
         params: {
@@ -155,7 +160,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user && token.sub) {
         session.user.id = token.sub;
       }
-      if(token.activeOrgId){
+      if (token.activeOrgId) {
         session.activeOrgID = token.activeOrgId
       }
 

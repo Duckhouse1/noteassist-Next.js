@@ -29,17 +29,22 @@ interface IntegrationOptionViewProps {
   onToggleAction: (actionKey: string) => void;
   onConfigChange: (key: string, value: ConfigFieldValue) => void;
   configItem: ProviderConfigItem | null;
+  onDisconnect: () => void
 }
 
-export default function IntegrationOptionView({option,company,connection,enabledMap,
-  onToggleAction,onConfigChange,configItem,}: IntegrationOptionViewProps) {
+export default function IntegrationOptionView({ option, company, connection, enabledMap,
+  onToggleAction, onConfigChange, configItem, onDisconnect}: IntegrationOptionViewProps) {
 
-    
+
   const [providerData, setProviderData] = useState<ProviderFetchResult | null>(null);
   const [isFetchingProviderData, setIsFetchingProviderData] = useState(false);
 
   // Animation key — forces re-mount of animated wrapper when selection changes
   const [animKey, setAnimKey] = useState(0);
+  const [hoveringConnect, setHoveringConnect] = useState(false);
+
+ 
+
   useEffect(() => {
     setAnimKey((k) => k + 1);
   }, [option.providerId]);
@@ -112,136 +117,148 @@ export default function IntegrationOptionView({option,company,connection,enabled
             Connect
           </Link>
         ) : (
-          <p className="bg-white text-green-600 p-2 rounded-md border border-green-600">
+          <button
+            onMouseEnter={() => setHoveringConnect(true)}
+            onMouseLeave={() => setHoveringConnect(false)}
+            onClick={() => onDisconnect()}
+            className={`relative overflow-hidden cursor-pointer rounded-md border px-4 py-2 text-sm font-medium text-green-600 transition-colors duration-300 ${hoveringConnect ? "border-red-400" : "border-green-600"
+              }`}
+          >
             Connected
-          </p>
+            <span
+              className={`absolute inset-0 z-10 flex items-center justify-center bg-red-400 text-white transition-transform duration-300 ease-in-out ${hoveringConnect ? "translate-y-0" : "translate-y-full"
+                }`}
+            >
+              Disconnect
+            </span>
+          </button>
         )}
+    </div>
+
+      {/* ── Actions ── */ }
+  <div className="animate-view-in-child" style={{ animationDelay: "60ms" }}>
+    <IntegrationOptionContainer connected={isConnected}>
+      <h1 className="font-bold mb-4">Actions</h1>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-4">
+        {option.actions.map((action, index) => (
+          <Row
+            key={index}
+            title={action.title}
+            desc={action.description}
+            checked={!!enabledMap[action.key]}
+            onChange={() => onToggleAction(action.key)}
+          />
+        ))}
       </div>
+    </IntegrationOptionContainer>
+  </div>
 
-      {/* ── Actions ── */}
-      <div className="animate-view-in-child" style={{ animationDelay: "60ms" }}>
-        <IntegrationOptionContainer connected={isConnected}>
-          <h1 className="font-bold mb-4">Actions</h1>
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-4">
-            {option.actions.map((action, index) => (
-              <Row
-                key={index}
-                title={action.title}
-                desc={action.description}
-                checked={!!enabledMap[action.key]}
-                onChange={() => onToggleAction(action.key)}
-              />
-            ))}
-          </div>
-        </IntegrationOptionContainer>
-      </div>
+  {/* ── Configurations ── */ }
+  <div className="animate-view-in-child" style={{ animationDelay: "120ms" }}>
+    <IntegrationOptionContainer connected={isConnected}>
+      <h1 className="font-bold mb-4">Configurations</h1>
 
-      {/* ── Configurations ── */}
-      <div className="animate-view-in-child" style={{ animationDelay: "120ms" }}>
-        <IntegrationOptionContainer connected={isConnected}>
-          <h1 className="font-bold mb-4">Configurations</h1>
-
-          {showSkeleton ? (
-            <ConfigSkeletonGrid />
-          ) : (
-            <div className={!isConnected ? "opacity-40 pointer-events-none" : ""}>
-              {option.providerId === "azure-devops" && (
-                <AzureDevopsConfigPanel
-                  config={
-                    configItem?.provider === "azure-devops"
-                      ? (configItem.config as AzureDevopsSettings)
-                      : undefined
-                  }
-                  data={
-                    providerData?.provider === "azure-devops"
-                      ? providerData.data
-                      : null
-                  }
-                  onPatch={(patch) => {
-                    if (!isConnected) return;
-                    for (const [k, v] of Object.entries(patch)) onConfigChange(k, v);
-                  }}
-                />
-              )}
-
-              {option.providerId === "outlook" && (
-                <OutlookConfigPanel
-                  config={
-                    configItem?.provider === "outlook"
-                      ? (configItem.config as OutlookSettings)
-                      : undefined
-                  }
-                  onPatch={(patch) => {
-                    if (!isConnected) return;
-                    for (const [k, v] of Object.entries(patch)) onConfigChange(k, v);
-                  }}
-                />
-              )}
-              {option.providerId === "jira" && (
-              <JiraConfigPanel
-                config={
-                  configItem?.provider === "jira"
-                    ? (configItem.config as JiraSettings)
-                    : undefined
-                }
-                data={
-                  providerData?.provider === "jira"
-                    ? providerData.data
-                    : null
-                }
-                onPatch={(patch) => {
-                  if (!isConnected) return;
-                  for (const [k, v] of Object.entries(patch)) onConfigChange(k, v);
-                }}
-              />
-            )}
-              {option.providerId === "clickup" && (
-              <ClickUpConfigs
-                config={
-                  configItem?.provider === "clickup"
-                    ? (configItem.config as ClickUpSettings)
-                    : undefined
-                }
-                data={
-                  providerData?.provider === "clickup"
-                    ? providerData.data
-                    : null
-                }
-                onPatch={(patch) => {
-                  if (!isConnected) return;
-                  for (const [k, v] of Object.entries(patch)) onConfigChange(k, v);
-                }}
-              />
-            )}
-            </div>
+      {showSkeleton ? (
+        <ConfigSkeletonGrid />
+      ) : (
+        <div className={!isConnected ? "opacity-40 pointer-events-none" : ""}>
+          {option.providerId === "azure-devops" && (
+            <AzureDevopsConfigPanel
+              config={
+                configItem?.provider === "azure-devops"
+                  ? (configItem.config as AzureDevopsSettings)
+                  : undefined
+              }
+              data={
+                providerData?.provider === "azure-devops"
+                  ? providerData.data
+                  : null
+              }
+              onPatch={(patch) => {
+                if (!isConnected) return;
+                for (const [k, v] of Object.entries(patch)) onConfigChange(k, v);
+              }}
+            />
           )}
-        </IntegrationOptionContainer>
-      </div>
 
-      {/* ── Details ── */}
-      <div className="animate-view-in-child" style={{ animationDelay: "180ms" }}>
-        <IntegrationOptionContainer connected={true}>
-          <h1 className="font-bold mb-4">Details</h1>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {option.sections.map((section) => (
-              <div
-                key={section.title}
-                className="rounded-2xl border border-gray-200 bg-white p-4"
-              >
-                <h2 className="text-sm font-semibold text-gray-900">
-                  {section.title}
-                </h2>
-                <p className="mt-1 text-sm text-gray-600 leading-relaxed">
-                  {section.description}
-                </p>
-              </div>
-            ))}
+          {option.providerId === "outlook" && (
+            <OutlookConfigPanel
+              config={
+                configItem?.provider === "outlook"
+                  ? (configItem.config as OutlookSettings)
+                  : undefined
+              }
+              onPatch={(patch) => {
+                if (!isConnected) return;
+                for (const [k, v] of Object.entries(patch)) onConfigChange(k, v);
+              }}
+            />
+          )}
+          {option.providerId === "jira" && (
+            <JiraConfigPanel
+              config={
+                configItem?.provider === "jira"
+                  ? (configItem.config as JiraSettings)
+                  : undefined
+              }
+              data={
+                providerData?.provider === "jira"
+                  ? providerData.data
+                  : null
+              }
+              onPatch={(patch) => {
+                if (!isConnected) return;
+                for (const [k, v] of Object.entries(patch)) onConfigChange(k, v);
+              }}
+            />
+          )}
+          {option.providerId === "clickup" && (
+            <ClickUpConfigs
+              config={
+                configItem?.provider === "clickup"
+                  ? (configItem.config as ClickUpSettings)
+                  : undefined
+              }
+              data={
+                providerData?.provider === "clickup"
+                  ? providerData.data
+                  : null
+              }
+              onPatch={(patch) => {
+                if (!isConnected) return;
+                for (const [k, v] of Object.entries(patch)) onConfigChange(k, v);
+              }}
+            />
+          )}
+        </div>
+      )}
+    </IntegrationOptionContainer>
+  </div>
+
+  {/* ── Details ── */ }
+  <div className="animate-view-in-child" style={{ animationDelay: "180ms" }}>
+    <IntegrationOptionContainer connected={true}>
+      <h1 className="font-bold mb-4">Details</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {option.sections.map((section) => (
+          <div
+            key={section.title}
+            className="rounded-2xl border border-gray-200 bg-white p-4"
+          >
+            <h2 className="text-sm font-semibold text-gray-900">
+              {section.title}
+            </h2>
+            <p className="mt-1 text-sm text-gray-600 leading-relaxed">
+              {section.description}
+            </p>
           </div>
-        </IntegrationOptionContainer>
+        ))}
       </div>
+    </IntegrationOptionContainer>
+  </div>
 
-      {/* Inline styles for the animation */}
-      <style jsx>{`
+  {/* Inline styles for the animation */ }
+  <style jsx>{`
         @keyframes viewIn {
           from {
             opacity: 0;
@@ -262,7 +279,7 @@ export default function IntegrationOptionView({option,company,connection,enabled
           animation: viewIn 0.35s ease-out both;
         }
       `}</style>
-    </div>
+    </div >
   );
 }
 

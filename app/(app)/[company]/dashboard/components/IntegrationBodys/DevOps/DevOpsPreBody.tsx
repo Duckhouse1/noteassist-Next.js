@@ -99,20 +99,13 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
     const defaultProjectId = (configs.find(c => c.provider === "azure-devops")?.config.defaultProject ?? "").trim();
     const defaultProject = projects.find(p => p.id.trim().toLowerCase() === defaultProjectId.trim().toLowerCase()) ?? null;
 
-    // console.log("Default project id: ");
-    // console.log(defaultProjectId);
-    // console.log("And whole project: ");
-    // console.log(defaultProject);
+  
     const [creatingElement, setCreatingElement] = useState<{
         type: DevOpsTaskTypes;
         parentId: string | null;
     } | null>(null);
-    // const isMounted = useSessionStorageState({
-    //     key:`devops:ismounted`,
-    //     initialValue:false
-    // })
+   
     const didApplyDefaultsRef = useRef(false);
-
 
     useEffect(() => {
         if (didApplyDefaultsRef.current) return;

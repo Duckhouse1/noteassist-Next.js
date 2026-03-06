@@ -151,7 +151,25 @@ export default function IntegrationsPage({ company }: IntegrationPageProps) {
   //     ? (cfg as Record<string, unknown>)
   //     : {};
   // }, [configItemForSelected]);
+  const onDisconnectClick = async () => {
+    try {
+      const response = await fetch("/api/user/IntegrationConnections", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider: selectedCard?.providerId }),
+      });
+      if (!response.ok) {
+        throw Error("Error disconnecting")
+      }
+      const newConnections = integrationState?.connections.filter(
+        (connection) => connection.provider !== selectedCard?.providerId
+      ) ?? [];
 
+      setIntegrationState((prev) => prev ? { ...prev, connections: newConnections } : prev);
+    } catch (error) {
+      console.log("Error disconnecting: " + error);
+    }
+  };
 
   return (
     <div className="bg-white w-full h-full p-10 px-20 flex flex-col overflow-auto">
@@ -211,6 +229,7 @@ export default function IntegrationsPage({ company }: IntegrationPageProps) {
               onToggleAction={(actionKey) => toggleAction(selectedCard.providerId, actionKey)}
               onConfigChange={updateSelectedProviderConfig}
               configItem={configItemForSelected}
+              onDisconnect={() => onDisconnectClick()}
             />
           ) : (
             <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-gradient-to-b from-slate-50/80 to-white py-32 px-8">

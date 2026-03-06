@@ -4,6 +4,7 @@ import { OpenAIContentType, DevOpsResponse, EmailDraft, MeetingSummary, TaskList
 import { AzureOpenAI } from "openai";
 import { Action } from "@/lib/Integrations/Types";
 import { ClickUpTaskExtraction } from "@/lib/Integrations/ClickUp/OpenAI";
+import { JiraIssueExtraction } from "@/lib/Integrations/Jira/OpenAI";
 // const pattoken = process.env.OPEN_AI_API_KEY!
 const apiKey = process.env.AZURE_OPENAI_API_KEY!;
 const falseApiKey = "notakey"
@@ -45,6 +46,7 @@ export const callOpenAI = async <T extends OpenAIContentType>(systemPrompt: stri
 // Specific extraction functions
 const OpenAIDevOpsTaskExtraction = async (
     noteContent: string,
+    Transcript:string,
     userConfig: string
 ): Promise<DevOpsResponse> => {
     const systemPrompt = `
@@ -334,13 +336,14 @@ Return ONLY valid JSON.`;
 // Generic extraction based on action
 const extractInfoBasedOnAction = async (
     noteContent: string,
+    Transcript: string,
     action: Action
 ): Promise<OpenAIResponse> => {
     switch (action.integration) {
         case "azure-devops":
             switch (action.key) {
                 case "ado.createWorkItems":
-                    const content = await OpenAIDevOpsTaskExtraction(noteContent, action.UserConfig ?? "");
+                    const content = await OpenAIDevOpsTaskExtraction(noteContent,Transcript ,action.UserConfig ?? "");
                     // console.log("Dette er openAI response: ");
                     // console.log(content);
                     return { type: "devops_tasks", content };
@@ -361,7 +364,7 @@ const extractInfoBasedOnAction = async (
         }
 
         case "jira": {
-            const content = await OpenAIDevOpsTaskExtraction(noteContent, action.UserConfig ?? "");
+            const content = await JiraIssueExtraction(noteContent, action.UserConfig ?? "");
             return { type: "jira_tasks", content };
         }
 
@@ -381,13 +384,13 @@ const extractInfoBasedOnAction = async (
 
 export async function POST(req: NextRequest) {
     try {
-        const { noteContent, action }: { noteContent: string; action: Action } = await req.json();
+        const { noteContent,Transcript ,action }: { noteContent: string; Transcript:string; action: Action } = await req.json();
 
         if (!noteContent || !action) {
             return NextResponse.json({ error: 'Missing noteContent or action' }, { status: 400 });
         }
 
-        const result: OpenAIResponse = await extractInfoBasedOnAction(noteContent, action);
+        const result: OpenAIResponse = await extractInfoBasedOnAction(noteContent,Transcript ,action);
         return NextResponse.json(result);
 
     } catch (error) {

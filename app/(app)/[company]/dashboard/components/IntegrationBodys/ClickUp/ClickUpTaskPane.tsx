@@ -68,7 +68,7 @@ export const ClickUpTaskPane = ({
     return (
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm w-full min-w-0 p-6 flex flex-col min-h-0 h-full">
     <h1 className="text-lg font-semibold text-slate-900 mb-2 flex-shrink-0">
-      Tasks
+      Task panel
     </h1>
 
             <div className="flex justify-end mb-2">

@@ -32,7 +32,7 @@ export default function AzureDevopsConfigPanel({
   // Cache fetched WIT type lists so switching projects doesn't re-fetch
   const witTypesCache = useRef<Map<string, string[]>>(new Map());
   const mkKey = (org: string, project: string) => `${org}|${project}`;
-const inFlight = useRef(new Map<string, Promise<string[]>>());
+  const inFlight = useRef(new Map<string, Promise<string[]>>());
 
   const [allWIT, setAllWIT] = useState<string[]>([]);
   const [loadingWIT, setLoadingWIT] = useState(false);

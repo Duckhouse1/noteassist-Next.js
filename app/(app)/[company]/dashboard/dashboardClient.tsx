@@ -43,7 +43,7 @@ export type IntegrationConfigItem =
 export default function DashboardClient({ company, mode, memberShip }: { company: string; mode: OrganisationMode, memberShip: string }) {
     const [selectedActions, setSelectedActions] = useState<Action[]>([]);
     const [currentPage, setCurrentPage] = useState<Pages>("frontpage");
-    const [notes, setNotes] = useState<Note>({ title: "", content: "", id: null });
+    const [notes, setNotes] = useState<Note>({ title: "", content: "", Transcript:"" , id: null });
     const [integrationState, setIntegrationState] = useState<IntegrationStateResponse | null>(null);
     const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
@@ -124,7 +124,7 @@ export default function DashboardClient({ company, mode, memberShip }: { company
             const response = await fetch("/api/notes", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text: notes.content, company, title: notes.title }),
+                body: JSON.stringify({ note: notes, company, title: notes.title }),
             });
             if (!response.ok) {
                 showToast("Failed to save note. Please try again.", "error");
@@ -173,7 +173,7 @@ export default function DashboardClient({ company, mode, memberShip }: { company
         if (!notes?.content) return
         Promise.all(
             selectedActions.map((action) =>
-                OpenAIService.extractInfoBasedOnAction(notes?.content, action).then((response) => ({ action, response }))
+                OpenAIService.extractInfoBasedOnAction(notes?.content, notes.Transcript ,action).then((response) => ({ action, response }))
             )
         )
             .then((results) => {
@@ -185,12 +185,12 @@ export default function DashboardClient({ company, mode, memberShip }: { company
                 });
                 setActionAISolutions(responseMap);
                 setIsLoading(false);
-                results.forEach(({ action, response }) => {
-                    console.log("action.key:", action.key, "action.responseType:", action.responseType, "response.type:", response.type);
-                    const key = action.integration ?? action.key;
-                    const existing = responseMap.get(key) ?? [];
-                    responseMap.set(key, [...existing, response]);
-                });
+                // results.forEach(({ action, response }) => {
+                //     console.log("action.key:", action.key, "action.responseType:", action.responseType, "response.type:", response.type);
+                //     const key = action.integration ?? action.key;
+                //     const existing = responseMap.get(key) ?? [];
+                //     responseMap.set(key, [...existing, response]);
+                // });
                 console.log("responseMap:", responseMap)
                 setCurrentPage("actions");
             })
@@ -308,7 +308,7 @@ export default function DashboardClient({ company, mode, memberShip }: { company
                                                 onGoToFrontPage={() => {
                                                     setCurrentPage("frontpage");
                                                     setSelectedActions([]);
-                                                    setNotes({ title: "", content: "", id: null });
+                                                    setNotes({ title: "", content: "", Transcript:"" ,id: null });
                                                 }}
                                             />
                                         )}

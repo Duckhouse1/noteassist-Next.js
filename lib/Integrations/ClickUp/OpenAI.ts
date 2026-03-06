@@ -97,25 +97,25 @@ Return ONLY valid JSON.
     elements: [
       {
         id: "cu-ws-mock-001",
-        type: "Workspace",
+        type: "Task",
         title: "Product Platform Workspace",
         description: "Work for core platform initiatives discussed in the meeting.",
         children: [
           {
             id: "cu-space-mock-001",
-            type: "Space",
+            type: "subtask",
             title: "Identity & Access",
             description: "Authentication/authorization workstreams and related infrastructure.",
             children: [
               {
                 id: "cu-list-mock-001",
-                type: "List",
+                type: "subtask",
                 title: "OAuth 2.0 Rollout",
                 description: "Tasks required to implement OAuth login and secure session handling.",
                 children: [
                   {
                     id: "cu-task-mock-001",
-                    type: "Task",
+                    type: "subtask",
                     title: "Configure OAuth providers",
                     description:
                       "Add provider configurations for Google and Microsoft. Store secrets securely and document setup steps.",
@@ -137,25 +137,25 @@ Return ONLY valid JSON.
       },
       {
         id: "cu-ws-mock-002",
-        type: "Workspace",
+        type: "Task",
         title: "Customer Insights Workspace",
         description: "Work related to analytics, dashboards, and reporting discussed in the meeting.",
         children: [
           {
             id: "cu-space-mock-002",
-            type: "Space",
+            type: "subtask",
             title: "Analytics Dashboard",
             description: "Frontend and backend work for metrics and reporting.",
             children: [
               {
                 id: "cu-list-mock-002",
-                type: "List",
+                type: "subtask",
                 title: "Real-time Metrics",
                 description: "Build components and infrastructure for live KPI updates.",
                 children: [
                   {
                     id: "cu-task-mock-003",
-                    type: "Task",
+                    type: "subtask",
                     title: "Design dashboard metric components",
                     description:
                       "Create reusable metric cards and chart components; define loading/error/empty states.",
@@ -163,7 +163,7 @@ Return ONLY valid JSON.
                   },
                   {
                     id: "cu-task-mock-004",
-                    type: "Task",
+                    type: "subtask",
                     title: "Add WebSocket pipeline for live updates",
                     description:
                       "Implement server push channel, client subscription logic, and reconnect/backoff strategy.",
