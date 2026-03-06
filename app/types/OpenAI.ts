@@ -52,6 +52,7 @@ export interface DevOpsTask {
 export interface DevOpsResponse {
     elements: DevOpsElement[];
 }
+
 export type DevOpsElement = {
     id: string;
     type: string;        // must match one of userConfig types exactly
@@ -63,6 +64,27 @@ export type DevOpsElement = {
     Area?: DevOpsArea;
     Iteration?: DevOpsIteration;
 };
+
+// ── Jira ──────────────────────────────────────────────────────────────────────
+
+export type JiraElement = {
+    id: string;
+    type: string;
+    title: string;
+    description: string;
+    children: JiraElement[];
+    cloudId?: string;
+    cloudName?: string;
+    projectKey?: string;
+    projectName?: string;
+};
+
+export interface JiraTasksContent {
+    elements: JiraElement[];
+}
+
+// ── Other types ───────────────────────────────────────────────────────────────
+
 export interface EmailDraft {
     subject: string;
     body: string;
@@ -107,7 +129,7 @@ export type OpenAIContentType =
 // Discriminated union for typed responses
 export type OpenAIResponse =
     | { type: "devops_tasks"; content: DevOpsResponse }
-    | { type: "jira_tasks"; content: DevOpsResponse }
+    | { type: "jira_tasks"; content: JiraTasksContent }
     | { type: "email_draft"; content: EmailDraft }
     | { type: "clickup_tasks"; content: ClickUpAIResponse }
     | { type: "outlook_meeting"; content: OutlookMeeting }

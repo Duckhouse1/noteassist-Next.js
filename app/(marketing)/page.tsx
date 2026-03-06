@@ -1,15 +1,11 @@
-import { cookies } from "next/headers";
-import LandingPage from "./components/landing/LandingPage";
+import LandingPage from "./LandingPage";
 
-export default async function Home() {
-  const cookieStore = await cookies();
-  const session = cookieStore.get("NoteAssistSession");
 
-  // if (session) {
-  //   redirect("/dashboard");
-  // }
-    // redirect("/login");
 
-  return <LandingPage />;
+export default function MarketingPage(){
+
+
+    return(
+        <LandingPage></LandingPage>
+    )
 }
-

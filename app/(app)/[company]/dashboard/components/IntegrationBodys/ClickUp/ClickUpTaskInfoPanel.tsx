@@ -50,64 +50,67 @@ export function ClickUpTaskInfoPanel({
                     </div>
 
                     {/* Meta: Space + List */}
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-2">
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            {/* Space */}
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-medium text-slate-500">Space</label>
-                                <select
-                                    disabled={!hasTask}
-                                    value={selectedElement.data.space?.id ?? ""}
-                                    onChange={(e) => onSpaceChange(e.currentTarget.value)}
-                                    className="
+                    {selectedElement.data.type == "Task" && (
+                        <div className="rounded-xl border border-slate-200 bg-slate-50 p-2">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                {/* Space */}
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-slate-500">Space</label>
+                                    <select
+                                        disabled={!hasTask}
+                                        value={selectedElement.data.space?.id ?? ""}
+                                        onChange={(e) => onSpaceChange(e.currentTarget.value)}
+                                        className="
                                         w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900
                                         shadow-sm outline-none transition
                                         focus:border-slate-300 focus:ring-4 focus:ring-blue-100
                                         disabled:bg-slate-50 disabled:text-slate-500
                                     "
-                                >
-                                    <option value="" disabled>
-                                        Select space
-                                    </option>
-                                    {availableSpaces.map((space) => (
-                                        <option value={space.id} key={space.id}>
-                                            {space.name}
+                                    >
+                                        <option value="" disabled>
+                                            Select space
                                         </option>
-                                    ))}
-                                </select>
-                            </div>
+                                        {availableSpaces.map((space) => (
+                                            <option value={space.id} key={space.id}>
+                                                {space.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                            {/* List */}
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-medium text-slate-500 flex gap-1">
-                                    List {!selectedElement.data.space ? <p className="text-xs text-slate-400"> - Select a space first</p> : ""}
-                                </label>
-                                <select
-                                    disabled={!hasTask || !selectedElement.data.space}
-                                    value={selectedElement.data.list?.id ?? ""}
-                                    onChange={(e) => {
-                                        const picked = availableLists.find((l) => l.id === e.currentTarget.value);
-                                        if (picked) onDataChange({ list: picked });
-                                    }}
-                                    className="
+                                {/* List */}
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-slate-500 flex gap-1">
+                                        List {!selectedElement.data.space ? <p className="text-xs text-slate-400"> - Select a space first</p> : ""}
+                                    </label>
+                                    <select
+                                        disabled={!hasTask || !selectedElement.data.space}
+                                        value={selectedElement.data.list?.id ?? ""}
+                                        onChange={(e) => {
+                                            const picked = availableLists.find((l) => l.id === e.currentTarget.value);
+                                            if (picked) onDataChange({ list: picked });
+                                        }}
+                                        className="
                                         w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900
                                         shadow-sm outline-none transition
                                         focus:border-slate-300 focus:ring-4 focus:ring-blue-100
                                         disabled:bg-slate-50 disabled:text-slate-500
                                     "
-                                >
-                                    <option value="" disabled>
-                                        Select list
-                                    </option>
-                                    {availableLists.map((list) => (
-                                        <option value={list.id} key={list.id}>
-                                            {list.name}
+                                    >
+                                        <option value="" disabled>
+                                            Select list
                                         </option>
-                                    ))}
-                                </select>
+                                        {availableLists.map((list) => (
+                                            <option value={list.id} key={list.id}>
+                                                {list.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                     )} 
+
 
                     {/* Description */}
                     <div>

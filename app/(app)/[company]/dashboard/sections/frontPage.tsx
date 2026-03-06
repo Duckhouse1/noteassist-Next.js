@@ -1,214 +1,11 @@
 "use client";
 
-import { Dispatch, useContext, useEffect, useRef } from "react";
-import { ActionKey } from "./ConfigurationPage";
+import { Dispatch, useContext, useState } from "react";
 import { LoadingContext, OrganizationModeContext } from "@/app/Contexts";
 import { ArrowRight, CheckIcon } from "@/app/Components/Icons/ButtonNCardsIcons";
 import { Note } from "./MyNotesPage";
-import { Action, IntegrationOptionsTitle } from "@/lib/Integrations/Types";
+import { Action } from "@/lib/Integrations/Types";
 import { Pages } from "../dashboardClient";
-
-/* ─────────────────────────────────────────────
-   Rich Note Editor
-   Supports:
-     (title:1)   → big bold heading; Enter exits back to normal
-     (*) + space → clean bullet with indent; Enter continues bullets,
-                   empty bullet + Enter exits bullet mode
-───────────────────────────────────────────── */
-
-const EDITOR_STYLES = `
-  .note-editor .note-heading {
-    font-size: 20px;
-    font-weight: 700;
-    line-height: 1.4;
-    color: #0f172a;
-    margin: 2px 0;
-  }
-  .note-editor .note-bullet {
-    padding-left: 18px;
-    position: relative;
-  }
-  .note-editor .note-bullet::before {
-    content: '•';
-    position: absolute;
-    left: 2px;
-    color: #0f172a;
-    font-size: 14.5px;
-    line-height: 1.8;
-  }
-  .note-editor:focus { outline: none; }
-  .note-editor > div:focus { outline: none; }
-`;
-
-function RichNoteEditor({
-    value,
-    onChange,
-}: {
-    value: string;
-    onChange: (v: string) => void;
-}) {
-    const editorRef = useRef<HTMLDivElement>(null);
-    const initializedRef = useRef(false);
-
-    // Hydrate initial content once on mount
-    useEffect(() => {
-        if (editorRef.current && !initializedRef.current) {
-            initializedRef.current = true;
-            if (value) editorRef.current.innerText = value;
-        }
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-    /** Walk up from the cursor's anchor node to find the direct child of the editor. */
-    const getCurrentBlock = (): Element | null => {
-        const sel = window.getSelection();
-        if (!sel?.rangeCount) return null;
-
-        let node: Node | null = sel.anchorNode;
-
-        // Walk up until we're a direct child of the editor
-        while (node && node.parentNode !== editorRef.current) {
-            node = node.parentNode;
-        }
-
-        if (!node || node === editorRef.current) return null;
-
-        // If it's a bare text node directly inside the editor, wrap it
-        if (node.nodeType === Node.TEXT_NODE) {
-            const div = document.createElement("div");
-            node.parentNode?.insertBefore(div, node);
-            div.appendChild(node);
-            return div;
-        }
-
-        return node as Element;
-    };
-
-    const moveCursorToEnd = (el: Element) => {
-        const sel = window.getSelection();
-        const range = document.createRange();
-        range.selectNodeContents(el);
-        range.collapse(false);
-        sel?.removeAllRanges();
-        sel?.addRange(range);
-    };
-
-    const moveCursorToStart = (el: Element) => {
-        const sel = window.getSelection();
-        const range = document.createRange();
-        range.setStart(el, 0);
-        range.collapse(true);
-        sel?.removeAllRanges();
-        sel?.addRange(range);
-    };
-
-    /** Check the current block for trigger patterns and transform it. */
-    const applyTransformations = () => {
-        const block = getCurrentBlock();
-        if (!block) return;
-
-        const text = block.textContent ?? "";
-
-        // (title:1) → heading
-        const titleMatch = text.match(/^\(title:1\)(.*)/);
-        if (titleMatch) {
-            block.textContent = titleMatch[1];
-            block.className = "note-heading";
-            moveCursorToEnd(block);
-            return;
-        }
-
-        // (*) followed by a space → bullet
-        const bulletMatch = text.match(/^\(\*\)\s(.*)/);
-        if (bulletMatch) {
-            block.textContent = bulletMatch[1];
-            block.className = "note-bullet";
-            moveCursorToEnd(block);
-            return;
-        }
-    };
-
-    const handleInput = () => {
-        applyTransformations();
-        if (editorRef.current) {
-            onChange(editorRef.current.innerText);
-        }
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        const block = getCurrentBlock();
-        if (!block) return;
-
-        if (e.key === "Enter") {
-            // ── Heading: Enter exits back to normal text ──
-            if (block.classList.contains("note-heading")) {
-                e.preventDefault();
-                const newDiv = document.createElement("div");
-                newDiv.innerHTML = "<br>";
-                block.after(newDiv);
-                moveCursorToStart(newDiv);
-                onChange(editorRef.current?.innerText ?? "");
-                return;
-            }
-
-            // ── Bullet: empty bullet exits; non-empty continues ──
-            if (block.classList.contains("note-bullet")) {
-                if (!block.textContent?.trim()) {
-                    // Exit bullet mode on double-Enter
-                    e.preventDefault();
-                    block.className = "";
-                    block.innerHTML = "<br>";
-                    moveCursorToStart(block);
-                } else {
-                    // Continue bullet on next line
-                    e.preventDefault();
-                    const newDiv = document.createElement("div");
-                    newDiv.className = "note-bullet";
-                    newDiv.innerHTML = "<br>";
-                    block.after(newDiv);
-                    moveCursorToStart(newDiv);
-                }
-                onChange(editorRef.current?.innerText ?? "");
-            }
-        }
-
-        // Backspace on an empty formatted block → strip the format
-        if (e.key === "Backspace") {
-            const isFormatted =
-                block.classList.contains("note-heading") ||
-                block.classList.contains("note-bullet");
-            if (isFormatted && !block.textContent?.trim()) {
-                e.preventDefault();
-                block.className = "";
-                block.innerHTML = "<br>";
-                moveCursorToStart(block);
-                onChange(editorRef.current?.innerText ?? "");
-            }
-        }
-    };
-
-    return (
-        <>
-            <style>{EDITOR_STYLES}</style>
-            <div
-                ref={editorRef}
-                contentEditable
-                suppressContentEditableWarning
-                onInput={handleInput}
-                onKeyDown={handleKeyDown}
-                className="note-editor min-h-[420px] w-full bg-white px-6 py-5 text-sm leading-relaxed text-slate-800 outline-none"
-                style={{
-                    fontFamily: "'Georgia', serif",
-                    fontSize: "14.5px",
-                    lineHeight: "1.8",
-                }}
-            />
-        </>
-    );
-}
-
-/* ─────────────────────────────────────────────
-   FrontPage
-───────────────────────────────────────────── */
 
 interface FrontPageProps {
     company: string;
@@ -224,6 +21,7 @@ interface FrontPageProps {
     onGoToActionsPageClick: () => void;
 }
 
+export type NoteType = "Notes" | "Transcript"
 export const FrontPage: React.FC<FrontPageProps> = ({
     onSaveNote, company, setCurrentPage, selectedActions, notes,
     setNotes, setNoteTitle, onGoToActionsGallery, selectedCount, onGoToActionsPageClick,
@@ -232,9 +30,34 @@ export const FrontPage: React.FC<FrontPageProps> = ({
     const { mode } = useContext(OrganizationModeContext);
     const isPersonalMode = mode === "personal";
     const charCount = notes?.content.length ?? 0;
+    const [noteType, setNoteType] = useState<NoteType>("Notes")
+    const [showClearNotesModal, setShowClearNotesModal] = useState(false)
+    const showTranscript = noteType === "Transcript"
 
+    const clearNotes = () => {
+        setNoteTitle("")
+        setNotes({ title: "", content: "", Transcript: "", id: null })
+        setShowClearNotesModal(false)
+    }
     return (
         <div className="bg-white w-full h-full flex flex-col overflow-auto">
+
+            {showClearNotesModal && (
+                <>
+                    {/* Background overlay */}
+                    <div className="fixed inset-0 bg-black/10 backdrop-blur-xs z-40"></div>
+
+                    {/* Modal */}
+                    <div className="fixed top-[50vh] left-[50%] -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-md p-5 flex flex-col gap-5">
+                        <p className="">Are you sure you want to clear your notes?</p>
+                        <div className=" flex justify-between">
+                            <button className=" cursor-pointer bg-black text-white rounded-md px-2 py-0.5" onClick={() => clearNotes()}>Yes</button>
+                            <button className=" border border-1 border-red-500 cursor-pointer bg-white text-red-400 rounded-md px-2 py-0.5" onClick={() => setShowClearNotesModal(false)}>No, Cancel</button>
+                        </div>
+
+                    </div>
+                </>
+            )}
             {/* Page header */}
             <div className="p-10 px-20 pb-0">
                 <h1 className="text-4xl font-bold tracking-tighter">New Note</h1>
@@ -261,7 +84,7 @@ export const FrontPage: React.FC<FrontPageProps> = ({
                         <div className="border border-gray-200 rounded-2xl overflow-hidden">
                             {/* Toolbar */}
                             <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/60 px-5 py-2.5">
-                                <div className="flex items-center gap-3 text-[11px] text-slate-400">
+                                {/* <div className="flex items-center gap-3 text-[11px] text-slate-400">
                                     <span>Plain text</span>
                                     <span className="text-slate-200">·</span>
                                     <span className="text-slate-300 font-mono">(title:1)</span>
@@ -271,8 +94,35 @@ export const FrontPage: React.FC<FrontPageProps> = ({
                                     <span className="text-slate-300 font-mono">(*)</span>
                                     <span className="text-slate-200">→</span>
                                     <span className="text-slate-300">bullet</span>
+                                </div> */}
+                                <div className=" gap-8 flex">
+                                    <button
+                                        style={{ fontSize: "14px" }}
+                                        className={
+                                            showTranscript ? "cursor-pointer text-gray-400 border border-gray-300 rounded-md px-2" :
+                                                " bg-black text-white rounded-md px-2"}
+                                        onClick={() => setNoteType("Notes")}>
+
+                                        Notes
+                                    </button>
+                                    <button
+                                        style={{ fontSize: "14px" }}
+                                        className={
+                                            showTranscript ? " bg-black text-white rounded-md px-2" :
+                                                "cursor-pointer text-gray-400 border border-gray-300 rounded-md px-2"}
+                                        onClick={() => setNoteType("Transcript")}>
+                                        Transcript
+                                    </button>
                                 </div>
                                 <div className="flex items-center gap-3">
+                                    <button
+                                        className=" font-medium text-xs text-gray-500 rounded-md border border-gray-300 px-2 cursor-pointer"
+                                        onClick={() => {
+                                            setShowClearNotesModal(true)
+                                        }}
+                                    >
+                                        Clear
+                                    </button>
                                     <span className="text-xs text-slate-400 tabular-nums">{charCount} chars</span>
                                     <button
                                         type="button"
@@ -285,9 +135,13 @@ export const FrontPage: React.FC<FrontPageProps> = ({
                             </div>
 
                             {/* Rich text editor */}
-                            <RichNoteEditor
-                                value={notes?.content ?? ""}
-                                onChange={(v) => setNotes(prev => ({ ...prev, content: v }))}
+                            <textarea
+                                className="font-serif w-full h-[50vh] border border-none rounded-md p-3 resize-none focus:outline-none"
+                                value={showTranscript ? notes.Transcript ? notes.Transcript : "" : notes.content ?? ""}
+                                onChange={(e) =>
+                                    showTranscript ? setNotes(prev => ({ ...prev, Transcript: e.target.value })) :
+                                        setNotes(prev => ({ ...prev, content: e.target.value }))
+                                }
                             />
                         </div>
                     </div>

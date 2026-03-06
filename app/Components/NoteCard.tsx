@@ -1,23 +1,26 @@
 "use client";
 
-import { useContext, useState } from "react";
+import { Dispatch, SetStateAction, useContext, useState } from "react";
 import { Note } from "../(app)/[company]/dashboard/sections/MyNotesPage";
 import { CurrentSiteContext, NotesContext } from "../Contexts";
 
 interface NoteCardProps {
   note: Note;
+  onNoteDelete: (callback: () => void) => void
 }
 
-export default function NoteCard({ note }: NoteCardProps) {
+export default function NoteCard({ note, onNoteDelete }: NoteCardProps) {
   const [open, setOpen] = useState(false);
-  const {setNotes} = useContext(NotesContext)
-  const {setCurrentPage} = useContext(CurrentSiteContext)
+  const { setNotes } = useContext(NotesContext)
+  const { setCurrentPage } = useContext(CurrentSiteContext)
   const preview =
     note.content.length > 140
       ? note.content.slice(0, 140) + "..."
       : note.content;
 
   const wordCount = note.content.trim().split(/\s+/).length;
+
+
 
   return (
     <>
@@ -86,8 +89,17 @@ export default function NoteCard({ note }: NoteCardProps) {
 
             {/* Modal footer */}
             <div className="flex items-center justify-between border-t border-slate-100 px-7 py-4 shrink-0">
-              <span className="text-xs text-slate-400 tabular-nums">{wordCount} words</span>
-              <div className="gap-2 flex">
+              <button onClick={() => {
+                onNoteDelete(() => setOpen(false))
+              }} className=" cursor-pointer text-sm text-red-500 hover:text-red-600">
+                Delete
+              </button>
+
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-slate-400 tabular-nums">
+                  {wordCount} words
+                </span>
+
                 <button
                   onClick={() => {
                     setNotes(note)
@@ -97,6 +109,7 @@ export default function NoteCard({ note }: NoteCardProps) {
                 >
                   Continue writing
                 </button>
+
                 <button
                   onClick={() => setOpen(false)}
                   className="cursor-pointer rounded-lg bg-black px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-gray-800 focus:outline-none focus:ring-offset-2"

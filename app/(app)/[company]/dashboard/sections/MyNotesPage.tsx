@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 export interface Note {
   title: string | null;
   content: string;
+  Transcript: string;
   id: string | null;
 }
 
@@ -53,6 +54,30 @@ export default function MyNotesPage() {
     FetchUserNotes();
   }, []);
 
+   const onDelete = async (noteId: string, callbackfunction: () => void) => {
+    try {
+      const res = await fetch("/api/user/notes", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify({
+          id: noteId
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to delete note");
+      }
+      const newNoteList = notes.filter((notes) => notes.id !== noteId)
+      setNotes(newNoteList)
+      callbackfunction()
+      console.log("Note deleted");
+    } catch (error) {
+      console.error("Error deleting card:", error);
+    }
+  };
   return (
     <div className="bg-white w-full h-full flex flex-col overflow-auto">
       {/* Page header */}
@@ -90,7 +115,7 @@ export default function MyNotesPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {notes.map((note, index) => (
-              <NoteCard key={index} note={note} />
+              <NoteCard key={index} note={note} onNoteDelete={(callback) => onDelete(note?.id ?? "",callback)} />
             ))}
           </div>
         )}

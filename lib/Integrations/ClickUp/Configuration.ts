@@ -23,7 +23,7 @@ export type ClickUpSettings = {
 export interface ClickUpElements {
     id:string;
     title:string;
-    type:string;
+    type:ClickUpTaskType;
     description:string;
     children: ClickUpElements[]
     space?: ClickUpSpace;
@@ -34,3 +34,4 @@ export interface ClickUpAIResponse {
     elements: ClickUpElements[]
 }
 
+export type ClickUpTaskType = "Task" | "subtask"

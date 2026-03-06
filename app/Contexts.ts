@@ -71,7 +71,7 @@ interface NotesContextProps {
 }
 
 export const NotesContext = createContext<NotesContextProps>({
-    notes: {title:"",content:"",id:null},
+    notes: {title:"",content:"", Transcript:"" ,id:null},
     setNotes: () => { }
 })
 

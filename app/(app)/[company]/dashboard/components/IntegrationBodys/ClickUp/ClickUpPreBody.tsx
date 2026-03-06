@@ -5,10 +5,11 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { UserConfigContext } from "@/app/Contexts";
 import { useSessionStorageState } from "@/app/Components/Hooks/useSessionStorage";
 import { useElementTree } from "@/app/Components/Hooks/useElementTree";
-import { ClickUpSpace, ClickUpList, ClickUpElements } from "@/lib/Integrations/ClickUp/Configuration";
+import { ClickUpSpace, ClickUpList, ClickUpElements, ClickUpTaskType } from "@/lib/Integrations/ClickUp/Configuration";
 import { ClickUpTaskPane } from "./ClickUpTaskPane";
 import { ClickUpTaskInfoPanel } from "./ClickUpTaskInfoPanel";
 import ClickUpFetchFunctions from "@/lib/Integrations/ClickUp/FetchFunctions";
+import { select } from "framer-motion/client";
 
 export default function ClickUpPreBody({ integrationKey }: { integrationKey: string }) {
     const { configs } = useContext(UserConfigContext);
@@ -73,7 +74,7 @@ export default function ClickUpPreBody({ integrationKey }: { integrationKey: str
     }, [spaces, lists]);
 
     // Helpers
-    const makeNewElement = (type: string): ClickUpElements => ({
+    const makeNewElement = (type: ClickUpTaskType): ClickUpElements => ({
         id: crypto.randomUUID(),
         type,
         title: `New ${type}`,
@@ -82,12 +83,20 @@ export default function ClickUpPreBody({ integrationKey }: { integrationKey: str
         space: spaces.find(s => s.id === defaultSpaceId),
         list: lists.find(l => l.id === defaultListId),
     });
-
+    // const UpdateChildrenSpace = async (elementId: string, space: ClickUpSpace) => {
+    //     tree.update(elementId,{space,list:undefined} as Partial<ClickUpElements>)
+    //     if(tree.selectedElement?.data.children && tree.selectedElement?.data?.children.length > 0){
+    //         for (const element of tree.selectedElement.data.children) {
+               
+    //             UpdateChildrenSpace(element)
+    //         }
+    //     }
+        
+    // }
     const onSpaceChange = async (spaceId: string) => {
         const picked = spaces.find(s => s.id === spaceId);
         if (!picked || !tree.selectedElement) return;
         tree.update(tree.selectedElement.data.id, { space: picked, list: undefined } as Partial<ClickUpElements>);
-
         try {
             const res = await fetch(`/api/integrations/ClickUp/lists?space=${encodeURIComponent(spaceId)}`);
             if (res.ok) {
@@ -109,7 +118,7 @@ export default function ClickUpPreBody({ integrationKey }: { integrationKey: str
                     onClick={tree.select}
                     onRemove={(a) => tree.remove(a.id)}
                     onAddTask={() => tree.addRoot(makeNewElement("Task"))}
-                    onAddSubtask={(parentId) => tree.addChild(parentId, makeNewElement("Subtask"))}
+                    onAddSubtask={(parentId) => tree.addChild(parentId, makeNewElement("subtask"))}
                     selectedElement={tree.selectedElement}
                 />
             </div>

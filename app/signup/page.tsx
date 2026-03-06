@@ -1,6 +1,8 @@
 "use client";
 
+import { isDbConnectionWakingError } from "@/lib/withDbRetry";
 import { useRouter } from "next/navigation";
+import { NextResponse } from "next/server";
 import { useState } from "react";
 
 export default function SignUpPage() {
@@ -41,8 +43,22 @@ export default function SignUpPage() {
 
       // ✅ success
       router.push("/login"); // eller auto login (se trin 3)
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err) {
+      if (err instanceof Error && err.message === "USER_EXISTS") {
+        return NextResponse.json({ error: "User already exists" }, { status: 409 });
+      }
+
+      if (isDbConnectionWakingError(err)) {
+        return NextResponse.json(
+          { error: "Waking database… please try again in a few seconds." },
+          { status: 503 }
+        );
+      }
+
+      return NextResponse.json(
+        { error: "Something went wrong. Please try again." },
+        { status: 500 }
+      );
     } finally {
       setIsSubmitting(false);
     }

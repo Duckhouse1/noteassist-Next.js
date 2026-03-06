@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import type { DevOpsElement } from "@/app/types/OpenAI";
+import type { JiraElement } from "@/app/types/OpenAI";
 import { getJiraAccessToken } from "@/lib/Integrations/Jira/accessToken";
-
-// Reuses the DevOpsElement shape from OpenAI types since the LLM outputs the same structure.
 
 type JiraCreateResult =
     | { ok: true; elementId?: string; issueKey: string; children?: JiraCreateResult[] }
@@ -28,16 +26,10 @@ async function createJiraIssue(params: {
     };
 
     if (description) {
-        // Atlassian Document Format (ADF) for description
         fields.description = {
             type: "doc",
             version: 1,
-            content: [
-                {
-                    type: "paragraph",
-                    content: [{ type: "text", text: description }],
-                },
-            ],
+            content: [{ type: "paragraph", content: [{ type: "text", text: description }] }],
         };
     }
 
@@ -58,22 +50,30 @@ async function createJiraIssue(params: {
     });
 
     const json = await resp.json().catch(() => ({}));
-
-    if (!resp.ok) {
-        return { ok: false, error: json };
-    }
-
+    if (!resp.ok) return { ok: false, error: json };
     return { ok: true, key: json.key };
 }
 
 async function createElementTree(params: {
-    element: DevOpsElement;
+    element: JiraElement;
     accessToken: string;
-    cloudId: string;
-    projectKey: string;
+    /** Fallback cloudId/projectKey used only when the element has none of its own */
+    fallbackCloudId: string;
+    fallbackProjectKey: string;
     parentKey?: string;
 }): Promise<JiraCreateResult> {
-    const { element, accessToken, cloudId, projectKey, parentKey } = params;
+    const { element, accessToken, fallbackCloudId, fallbackProjectKey, parentKey } = params;
+
+    const cloudId = element.cloudId?.trim() || fallbackCloudId;
+    const projectKey = element.projectKey?.trim() || fallbackProjectKey;
+
+    if (!cloudId || !projectKey) {
+        return {
+            ok: false,
+            elementId: element.id,
+            error: `Element "${element.title}" has no site or project set.`,
+        };
+    }
 
     const result = await createJiraIssue({
         accessToken,
@@ -97,8 +97,8 @@ async function createElementTree(params: {
             await createElementTree({
                 element: child,
                 accessToken,
-                cloudId,
-                projectKey,
+                fallbackCloudId: cloudId,     // parent's cloud cascades to children
+                fallbackProjectKey: projectKey,
                 parentKey: result.key,
             })
         );
@@ -122,17 +122,10 @@ export async function POST(req: Request) {
     }
 
     const body = (await req.json().catch(() => null)) as unknown;
-    const { elements, cloudId, projectKey } = (body ?? {}) as {
-        elements?: DevOpsElement[];
-        cloudId?: string;
-        projectKey?: string;
-    };
+    const { elements } = (body ?? {}) as { elements?: JiraElement[] };
 
     if (!Array.isArray(elements) || elements.length === 0) {
         return NextResponse.json({ error: "Missing elements[]" }, { status: 400 });
-    }
-    if (!cloudId || !projectKey) {
-        return NextResponse.json({ error: "Missing cloudId or projectKey" }, { status: 400 });
     }
 
     const accessToken = await getJiraAccessToken(userId, orgId);
@@ -144,7 +137,14 @@ export async function POST(req: Request) {
 
     for (const element of elements) {
         try {
-            results.push(await createElementTree({ element, accessToken, cloudId, projectKey }));
+            results.push(
+                await createElementTree({
+                    element,
+                    accessToken,
+                    fallbackCloudId: "",
+                    fallbackProjectKey: "",
+                })
+            );
         } catch (err) {
             results.push({ ok: false, elementId: element?.id, error: err });
         }

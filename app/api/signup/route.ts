@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import type { Prisma } from "@prisma/client";
+import { withRetry } from "@/lib/withDbRetry";
 
 async function ensurePersonalOrg(userId: string) {
   const existing = await prisma.membership.findFirst({
@@ -49,11 +50,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "User already exists" }, { status: 409 });
   }
 
-  const passwordHash = await bcrypt.hash(password, 12);
+  // const passwordHash = await bcrypt.hash(password, 12);
 
   // ✅ Do it in a transaction so user + org are consistent
-const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {    
-  const user = await tx.user.create({
+const result = await withRetry(async () => {
+  const existingUser = await prisma.user.findUnique({
+    where: { email: emailNorm },
+    select: { id: true },
+  });
+
+  if (existingUser) {
+    throw new Error("USER_EXISTS");
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12);
+
+  return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    const user = await tx.user.create({
       data: {
         email: emailNorm,
         passwordHash,
@@ -62,7 +75,6 @@ const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) =>
       select: { id: true, email: true },
     });
 
-    // re-implement ensurePersonalOrg using tx:
     const org = await tx.organization.create({
       data: {
         name: "MyWorkspace",
@@ -74,6 +86,7 @@ const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) =>
 
     return { user, org };
   });
+});
 
   // ✅ return 201; your client already router.push("/signin")
   return NextResponse.json(

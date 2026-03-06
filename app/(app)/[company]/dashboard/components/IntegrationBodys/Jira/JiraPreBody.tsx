@@ -1,84 +1,208 @@
 "use client";
 
-import { useContext } from "react";
-import { DevOpsElement, DevOpsResponse } from "@/app/types/OpenAI";
-import { OpenAIActionSolutionsMapContext } from "@/app/Contexts";
+import { useContext, useEffect, useRef, useState } from "react";
+import { JiraElement } from "@/app/types/OpenAI";
+import { UserConfigContext } from "@/app/Contexts";
+import { useElementTree } from "@/app/Components/Hooks/useElementTree";
+import { JiraIssuePane } from "./JiraIssuePane";
+import { JiraIssueInfoPanel } from "./JiraIssueInfoPanel";
+import { JiraCloudSite, JiraProject } from "@/lib/Integrations/Jira/Configuration";
+
+function JiraMark() {
+    return (
+        <svg width="20" height="20" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15.89 1.68L8.3 9.27l-3.92 3.92a1.32 1.32 0 000 1.87l7.38 7.38 4.13 4.13a1.32 1.32 0 001.87 0l7.38-7.38 4.56-4.56a1.32 1.32 0 000-1.87L15.89 1.68z" fill="#2684FF" />
+            <path d="M15.89 1.68A8.32 8.32 0 0115.82 13.5l-3.96 3.96 4.03 4.03a1.32 1.32 0 001.87 0l7.38-7.38 4.56-4.56a1.32 1.32 0 000-1.87L15.89 1.68z" fill="url(#jira_grad_1)" />
+            <path d="M4.38 16.12a1.32 1.32 0 000 1.87l7.38 7.38 4.13 4.13a1.32 1.32 0 001.87 0l4.13-4.13-7.38-7.38a8.32 8.32 0 01-2.43-8.29L4.38 16.12z" fill="url(#jira_grad_2)" />
+            <defs>
+                <linearGradient id="jira_grad_1" x1="16.49" y1="9.78" x2="22.54" y2="3.73" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#0052CC" /><stop offset="100%" stopColor="#2684FF" />
+                </linearGradient>
+                <linearGradient id="jira_grad_2" x1="15.35" y1="17.78" x2="9.24" y2="23.89" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stopColor="#0052CC" /><stop offset="100%" stopColor="#2684FF" />
+                </linearGradient>
+            </defs>
+        </svg>
+    );
+}
 
 export const JiraPreBody = ({ integrationKey }: { integrationKey: string }) => {
-    const { OpenAISolutionsMap } = useContext(OpenAIActionSolutionsMapContext);
-    const response = OpenAISolutionsMap.get(integrationKey);
-    
-    const type = response?.find((type) => type.type === "jira_tasks")
-    if (!type) return null;
+    const { configs } = useContext(UserConfigContext);
 
-    const data = type.content as DevOpsResponse;
-    const elements = data.elements ?? [];
+    const jiraConfig = configs.find((c) => c.provider === "jira")?.config;
+    const availableTypes: string[] = jiraConfig?.defaultIssueTypes ?? [];
+    const defaultCloudId = jiraConfig?.defaultCloudId ?? "";
+    const defaultProjectKey = jiraConfig?.defaultProjectKey ?? "";
 
-    if (elements.length === 0) {
-        return (
-            <div className="flex items-center justify-center rounded-2xl border border-dashed border-slate-200 py-16 text-sm text-slate-400">
-                No issues were extracted from your notes.
-            </div>
+    const [sites, setSites] = useState<JiraCloudSite[]>([]);
+    const projectsCache = useRef<Map<string, JiraProject[]>>(new Map());
+    const [currentProjects, setCurrentProjects] = useState<JiraProject[]>([]);
+    const [loadingProjects, setLoadingProjects] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const tree = useElementTree<JiraElement>({
+        integrationKey,
+        storagePrefix: "jira",
+        responseType: "jira_tasks",
+        extractElements: (r) => (r.type === "jira_tasks" ? r.content.elements : []),
+        buildResponse: (elements) => ({ type: "jira_tasks", content: { elements } }),
+    });
+
+    // Fetch sites once on mount
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await fetch("/api/integrations/jira/sites");
+                if (!res.ok) throw new Error("Failed");
+                const json = await res.json() as { sites: JiraCloudSite[] };
+                if (!cancelled) setSites(json.sites ?? []);
+            } catch {
+                if (!cancelled) setError("Could not load Jira sites.");
+            }
+        })();
+        return () => { cancelled = true; };
+    }, []);
+
+    // Pre-warm default site's project list
+    useEffect(() => {
+        if (!defaultCloudId || projectsCache.current.has(defaultCloudId)) return;
+        (async () => {
+            try {
+                const res = await fetch(`/api/integrations/jira/projects?cloudId=${encodeURIComponent(defaultCloudId)}`);
+                if (!res.ok) return;
+                const json = await res.json() as JiraProject[];
+                projectsCache.current.set(defaultCloudId, json ?? []);
+            } catch { /* silent */ }
+        })();
+    }, [defaultCloudId]);
+
+    // Load projects for the selected element's cloud
+    const selectedCloudId = tree.selectedElement?.data.cloudId ?? "";
+    useEffect(() => {
+        if (!selectedCloudId) { setCurrentProjects([]); return; }
+        const cached = projectsCache.current.get(selectedCloudId);
+        if (cached) { setCurrentProjects(cached); return; }
+
+        let cancelled = false;
+        setLoadingProjects(true);
+        (async () => {
+            try {
+                const res = await fetch(`/api/integrations/jira/projects?cloudId=${encodeURIComponent(selectedCloudId)}`);
+                if (!res.ok) throw new Error("Failed");
+                const json = await res.json() as JiraProject[];
+                if (!cancelled) {
+                    projectsCache.current.set(selectedCloudId, json ?? []);
+                    setCurrentProjects(json ?? []);
+                }
+            } catch {
+                if (!cancelled) setError("Could not load Jira projects.");
+            } finally {
+                if (!cancelled) setLoadingProjects(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [selectedCloudId]);
+
+    const handleSiteChange = async (cloudId: string, cloudName: string) => {
+        if (!tree.selectedElement) return;
+        tree.update(tree.selectedElement.data.id, {
+            cloudId,
+            cloudName,
+            projectKey: "",
+            projectName: "",
+        });
+
+        const cached = projectsCache.current.get(cloudId);
+        if (cached) { setCurrentProjects(cached); return; }
+
+        setLoadingProjects(true);
+        try {
+            const res = await fetch(`/api/integrations/jira/projects?cloudId=${encodeURIComponent(cloudId)}`);
+            if (!res.ok) throw new Error("Failed");
+            const json = await res.json() as JiraProject[];
+            projectsCache.current.set(cloudId, json ?? []);
+            setCurrentProjects(json ?? []);
+        } catch {
+            setError("Could not load Jira projects.");
+        } finally {
+            setLoadingProjects(false);
+        }
+    };
+
+    const makeNewIssue = (type: string): JiraElement => {
+        const defaultSite = sites.find((s) => s.id === defaultCloudId);
+        const defaultProj = projectsCache.current.get(defaultCloudId)?.find(
+            (p) => p.key === defaultProjectKey
         );
-    }
+        return {
+            id: crypto.randomUUID(),
+            type,
+            title: `New ${type}`,
+            description: "",
+            children: [],
+            cloudId: defaultSite?.id ?? "",
+            cloudName: defaultSite?.name ?? "",
+            projectKey: defaultProj?.key ?? "",
+            projectName: defaultProj?.name ?? "",
+        };
+    };
 
     return (
-        <div className=" overflow flex flex-col gap-3 min-h-0 h-[clamp(360px,65dvh,1000px)]">
-            <div className="flex items-center gap-2 mb-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600">
-                    <svg className="h-4 w-4 text-white" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M11.53 2.232a1.003 1.003 0 0 1 .94 0l9 4.855a1 1 0 0 1 .004 1.756l-9 4.995a1.003 1.003 0 0 1-.948.004l-9-4.855a1 1 0 0 1-.006-1.76z" />
-                        <path d="m2.466 12.632 9.06 4.888a1.003 1.003 0 0 0 .948 0l9.06-5.03a.5.5 0 0 1 .5.866l-9.06 5.03a2.005 2.005 0 0 1-1.898-.004l-9.06-4.888a.5.5 0 0 1 .45-.862z" />
-                    </svg>
-                </div>
-                <div>
-                    <p className="text-sm font-semibold text-slate-900">Jira Issues Preview</p>
-                    <p className="text-xs text-slate-400">
-                        {countAll(elements)} issue{countAll(elements) !== 1 ? "s" : ""} extracted
-                    </p>
-                </div>
+        <div className="w-full flex flex-row gap-2 items-stretch min-h-0 h-[clamp(320px,65vh,640px)]">
+
+            <div className="flex-3 min-w-0 max-h-[calc(100vh-160px)]">
+                <JiraIssuePane
+                    elements={tree.elements}
+                    availableTypes={availableTypes}
+                    selectedElement={tree.selectedElement}
+                    onClick={tree.select}
+                    onRemove={(id) => tree.remove(id)}
+                    onAddRoot={(type) => tree.addRoot(makeNewIssue(type))}
+                    onAddChild={(parentId, type) => tree.addChild(parentId, makeNewIssue(type))}
+                />
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white overflow-auto divide-y divide-slate-100">
-                {elements.map((el) => (
-                    <JiraElementNode key={el.id} element={el} depth={0} />
-                ))}
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm flex-[6] flex flex-col min-h-0">
+                <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-2.5 flex-shrink-0">
+                    <div className="grid h-8 w-8 place-items-center rounded-lg">
+                        <JiraMark />
+                    </div>
+                    <h2 className="text-base font-semibold text-slate-900">Jira</h2>
+                </div>
+
+                <div className="p-5 flex-1 min-h-0 flex flex-col">
+                    {error && (
+                        <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                            {error}
+                        </div>
+                    )}
+
+                    {tree.selectedElement ? (
+                        <div className="mt-0 flex-1 min-h-0">
+                            <JiraIssueInfoPanel
+                                selectedElement={tree.selectedElement}
+                                availableTypes={availableTypes}
+                                sites={sites}
+                                projects={currentProjects}
+                                loadingProjects={loadingProjects}
+                                onDataChange={(patch) => tree.update(tree.selectedElement!.data.id, patch)}
+                                onSiteChange={handleSiteChange}
+                            />
+                        </div>
+                    ) : (
+                        <div className="flex flex-1 items-center justify-center">
+                            <div className="flex max-w-sm flex-col items-center gap-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center">
+                                <JiraMark />
+                                <div>
+                                    <h3 className="text-sm font-semibold text-slate-900">Select an issue to get started</h3>
+                                    <p className="mt-1 text-sm text-slate-600">Choose an issue from the list to view and edit its details.</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
 };
-
-function JiraElementNode({ element, depth }: { element: DevOpsElement; depth: number }) {
-    const indent = depth * 24;
-
-    return (
-        <>
-            <div
-                className="flex items-start gap-3 px-5 py-3 hover:bg-slate-50/50 transition-colors"
-                style={{ paddingLeft: `${20 + indent}px` }}
-            >
-                <span className="mt-0.5 inline-flex shrink-0 rounded-md bg-blue-50 border border-blue-200 px-2 py-0.5 text-[10px] font-bold text-blue-700 uppercase tracking-wide">
-                    {element.type}
-                </span>
-                <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-slate-900 leading-snug">{element.title}</p>
-                    {element.description && (
-                        <p className="text-xs text-slate-400 mt-0.5 line-clamp-2">{element.description}</p>
-                    )}
-                </div>
-            </div>
-            {element.children?.map((child) => (
-                <JiraElementNode key={child.id} element={child} depth={depth + 1} />
-            ))}
-        </>
-    );
-}
-
-function countAll(elements: DevOpsElement[]): number {
-    let count = 0;
-    for (const el of elements) {
-        count += 1;
-        if (el.children) count += countAll(el.children);
-    }
-    return count;
-}

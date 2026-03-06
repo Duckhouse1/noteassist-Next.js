@@ -59,7 +59,9 @@ export const integrationRegistry: IntegrationRegistry = {
                 await fetch("/api/integrations/jira/createIssues", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ elements: response.content.elements }),
+                    body: JSON.stringify({
+                        elements: response.content.elements
+                    }),
                 });
             },
         },
@@ -73,7 +75,7 @@ export const integrationRegistry: IntegrationRegistry = {
             createLabel: "Create in ClickUp",
             createFn: async (response) => {
                 if (response.type !== "clickup_tasks") return;
-                await fetch("/api/integrations/ClickUp/createTasks", {
+                await fetch("/api/integrations/ClickUp/CreateTasks", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ elements: response.content.elements }),

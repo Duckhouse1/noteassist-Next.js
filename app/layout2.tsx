@@ -1,0 +1,45 @@
+import type { Metadata } from "next";
+import { Geist, Geist_Mono, Fraunces } from "next/font/google";
+// import "./globals.css";
+import Script from "next/script";
+
+const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
+const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  axes: ["opsz"],
+});
+
+export const metadata: Metadata = {
+  title: "Norbit",
+  description: "Orbit your notes",
+};
+
+const GA_ID = "G-LDY5V93J8G";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="da" className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable}`}>
+      <head />
+      <body>
+        {/* GA4 */}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="ga4-init" strategy="afterInteractive">
+          {` 
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);} 
+            window.gtag = gtag;
+            gtag('js', new Date());
+            gtag('config', '${GA_ID}', { debug_mode: true });
+          `}
+        </Script>
+
+        {children}
+      </body>
+    </html>
+  );
+}

@@ -16,7 +16,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Missing org" }, { status: 400 });
   }
 
-  // Find org by slug
   const org = await prisma.organization.findUnique({
     where: { slug: companySlug },
     select: { id: true },
@@ -25,15 +24,9 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Org not found" }, { status: 404 });
   }
 
-  // Ensure membership
   const userId = (session.user).id as string;
   const member = await prisma.membership.findUnique({
-    where: {
-      organizationId_userId: {
-        organizationId: org.id,
-        userId,
-      },
-    },
+    where: { organizationId_userId: { organizationId: org.id, userId } },
     select: { id: true },
   });
   if (!member) {
@@ -44,25 +37,29 @@ export async function GET(req: Request) {
     where: { organizationId: org.id },
     orderBy: { createdAt: "desc" },
   });
-
+  console.log("Dette er notes");
+  console.log(notes);
   return NextResponse.json(notes);
 }
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  console.log("EMAIL frA SESSION" + session?.user.id);
   if (!session?.user?.email || !(session.user).id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const body = await req.json();
-  const { company: companySlug, text, title } = body as { company?: string; text?: string, title:string};
+  const { company: companySlug, note, title } = body as {
+    company?: string;
+    note: { id: string; content: string, Transcript: string };
+    title: string;
+  };
 
   if (!companySlug) {
     return NextResponse.json({ error: "Missing company" }, { status: 400 });
   }
-  if (!text || typeof text !== "string") {
-    return NextResponse.json({ error: "Invalid text" }, { status: 400 });
+  if (!note?.content) {
+    return NextResponse.json({ error: "Invalid note content" }, { status: 400 });
   }
 
   const company = await prisma.organization.findUnique({
@@ -76,26 +73,31 @@ export async function POST(req: Request) {
   const userId = (session.user).id as string;
 
   const member = await prisma.membership.findUnique({
-    where: {
-      organizationId_userId: {
-        organizationId: company.id,
-        userId,
-      },
-    },
+    where: { organizationId_userId: { organizationId: company.id, userId } },
     select: { id: true },
   });
   if (!member) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const note = await prisma.note.create({
-    data: {
+  const noteId = note.id || crypto.randomUUID();
+  const Transcript = note.Transcript ?? ""
+  const savedNote = await prisma.note.upsert({
+    where: { id: noteId },
+    update: {
+      content: note.content,
+      title,
+      Transcript: Transcript
+    },
+    create: {
+      id: noteId,
       organizationId: company.id,
       userId,
-      content: text,
-      title: title,
+      content: note.content,
+      title,
+      Transcript: Transcript
     },
   });
 
-  return NextResponse.json(note, { status: 201 });
+  return NextResponse.json(savedNote, { status: 201 });
 }
