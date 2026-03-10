@@ -66,10 +66,10 @@ export const ClickUpTaskPane = ({
         "before:content-[''] before:absolute before:left-0 before:top-0 before:h-full before:w-0.5 before:rounded-l-lg before:bg-gray-600";
 
     return (
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm w-full min-w-0 p-6 flex flex-col min-h-0 h-full">
-    <h1 className="text-lg font-semibold text-slate-900 mb-2 flex-shrink-0">
-      Task panel
-    </h1>
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm w-full min-w-0 p-3 lg:p-6 flex flex-col min-h-[40vh] max-h-[40vh] lg:min-h-[64vh] lg:max-h-[64vh]">
+            <h1 className="text-lg font-semibold text-slate-900 mb-2 flex-shrink-0">
+                Task panel
+            </h1>
 
             <div className="flex justify-end mb-2">
                 <button

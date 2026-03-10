@@ -4,11 +4,15 @@ import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import * as microsoftTeams from "@microsoft/teams-js";
 
 export default function UserLoginPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const searchParams = useSearchParams();
+  const isTeams = searchParams.get("teams") === "true";
 
   async function onSubmit(e: React.SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -28,7 +32,7 @@ export default function UserLoginPage() {
     const res = await signIn("credentials", {
       email,
       password,
-      callbackUrl: "/dashboard",
+      redirect: false, // ← handle redirect ourselves
     });
 
     setIsSubmitting(false);
@@ -38,7 +42,14 @@ export default function UserLoginPage() {
       return;
     }
 
-    // router.push(res?.url ?? "/login");
+    if (isTeams) {
+      // await microsoftTeams.app.initialize().catch(() => { });
+      // microsoftTeams.authentication.notifySuccess();
+            router.push("/teams");
+
+    } else {
+      router.push("/dashboard");
+    }
   }
 
   return (

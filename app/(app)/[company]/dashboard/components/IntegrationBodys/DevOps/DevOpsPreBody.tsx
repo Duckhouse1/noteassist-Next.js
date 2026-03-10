@@ -51,7 +51,7 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
     const { OpenAISolutionsMap, setOpenAISolutionsMap } = useContext(OpenAIActionSolutionsMapContext);
     const [selectedProject, setSelectedProject] = useState<DevOpsProjectsProps | null>(null);
     const { configs } = useContext(UserConfigContext)
- 
+
 
     const [teams, setTeams] = useState<DevOpsTeamsProps[]>([]);
 
@@ -61,7 +61,7 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
     const solution = saved?.find((sol) => sol.type === "devops_tasks")
     const savedElements =
         solution?.type === "devops_tasks" ? solution.content.elements : [];
-   
+
     const projectId = selectedElement?.data.Project?.id ? selectedElement?.data.Project?.id : savedElements[0]?.Project?.id ?? selectedProject?.id ?? "";
     const { value: projects, setValue: setProjects } = useSessionStorageState<DevOpsProjectsProps[]>({
         key: `devops:projects:${integrationKey}`,
@@ -99,12 +99,12 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
     const defaultProjectId = (configs.find(c => c.provider === "azure-devops")?.config.defaultProject ?? "").trim();
     const defaultProject = projects.find(p => p.id.trim().toLowerCase() === defaultProjectId.trim().toLowerCase()) ?? null;
 
-  
+
     const [creatingElement, setCreatingElement] = useState<{
         type: DevOpsTaskTypes;
         parentId: string | null;
     } | null>(null);
-   
+
     const didApplyDefaultsRef = useRef(false);
 
     useEffect(() => {
@@ -410,8 +410,8 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
     };
 
     return (
-        <div className="w-full flex flex-row gap-2 items-stretch h-[64vh] min-h-0">
-            <div className="flex-3 min-w-0 max-h-[calc(100vh-160px)]">
+        <div className="w-full flex flex-col lg:flex-row gap-2 items-stretch lg:h-[64vh] min-h-0">
+            <div className="min-w-0 lg:flex-[3] lg:max-h-[calc(100vh-160px)]">
                 <TasksDisplayPanel
                     elements={elements}
                     onClick={onActionTaskClick}
@@ -423,7 +423,7 @@ export const DevOpsPreBody = ({ integrationKey }: { integrationKey: string }) =>
 
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm flex-[6] flex flex-col min-h-0">
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm lg:flex-[6] flex flex-col min-h-0">
                 {/* Header */}
                 <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5 flex-shrink-0">
                     <div className="flex items-center gap-2">

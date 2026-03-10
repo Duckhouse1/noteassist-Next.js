@@ -1,15 +1,13 @@
-import { EmailDraft } from "@/app/types/OpenAI";
 import { IntegrationBody } from "./IntegrationBody";
-import { OutLookDraft } from "./IntegrationBodys//Outlook/OutLookDraft";
-import { useContext } from "react";
-import { OpenAIActionSolutionsMapContext, ShowNotesBodyContext } from "@/app/Contexts";
+import { useContext, useState } from "react";
+import { clientIsFromTeams, OpenAIActionSolutionsMapContext, ShowNotesBodyContext } from "@/app/Contexts";
 import { NotesBody } from "./NotesBody";
 import { Action } from "@/lib/Integrations/Types";
 
 
-export const ActionsBody = ({ action, onActionComplete }: { action: Action; onActionComplete: () => void; }) => {
+export const ActionsBody = ({ action, onActionComplete, isfromTeams }: { action: Action; onActionComplete: () => void; isfromTeams: boolean }) => {
     const { OpenAISolutionsMap } = useContext(OpenAIActionSolutionsMapContext)
-
+    // const [fromTeams] = useState<boolean>()
     const { show } = useContext(ShowNotesBodyContext)
 
     if (show) {
@@ -18,11 +16,15 @@ export const ActionsBody = ({ action, onActionComplete }: { action: Action; onAc
     if (action.integration) {
         return (
             <div>
-                <IntegrationBody
-                    IntegrationOption={action.integration}
-                    responseType={action.responseType}  // ← ny prop
-                    onActionComplete={onActionComplete}
-                />            </div >
+                <clientIsFromTeams.Provider value={{ fromTeams: isfromTeams }}>
+                    <IntegrationBody
+                        IntegrationOption={action.integration}
+                        responseType={action.responseType}  // ← ny prop
+                        onActionComplete={onActionComplete}
+
+                    />
+                </clientIsFromTeams.Provider >
+            </div >
         )
     }
 

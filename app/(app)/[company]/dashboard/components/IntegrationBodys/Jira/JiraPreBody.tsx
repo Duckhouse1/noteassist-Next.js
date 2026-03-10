@@ -2,7 +2,7 @@
 
 import { useContext, useEffect, useRef, useState } from "react";
 import { JiraElement } from "@/app/types/OpenAI";
-import { UserConfigContext } from "@/app/Contexts";
+import { UserConfigContext, clientIsFromTeams } from "@/app/Contexts";
 import { useElementTree } from "@/app/Components/Hooks/useElementTree";
 import { JiraIssuePane } from "./JiraIssuePane";
 import { JiraIssueInfoPanel } from "./JiraIssueInfoPanel";
@@ -28,6 +28,8 @@ function JiraMark() {
 
 export const JiraPreBody = ({ integrationKey }: { integrationKey: string }) => {
     const { configs } = useContext(UserConfigContext);
+    const { fromTeams } = useContext(clientIsFromTeams);
+    const s = (normal: string, small: string) => fromTeams ? small : normal;
 
     const jiraConfig = configs.find((c) => c.provider === "jira")?.config;
     const availableTypes: string[] = jiraConfig?.defaultIssueTypes ?? [];
@@ -48,7 +50,6 @@ export const JiraPreBody = ({ integrationKey }: { integrationKey: string }) => {
         buildResponse: (elements) => ({ type: "jira_tasks", content: { elements } }),
     });
 
-    // Fetch sites once on mount
     useEffect(() => {
         let cancelled = false;
         (async () => {
@@ -64,7 +65,6 @@ export const JiraPreBody = ({ integrationKey }: { integrationKey: string }) => {
         return () => { cancelled = true; };
     }, []);
 
-    // Pre-warm default site's project list
     useEffect(() => {
         if (!defaultCloudId || projectsCache.current.has(defaultCloudId)) return;
         (async () => {
@@ -77,7 +77,6 @@ export const JiraPreBody = ({ integrationKey }: { integrationKey: string }) => {
         })();
     }, [defaultCloudId]);
 
-    // Load projects for the selected element's cloud
     const selectedCloudId = tree.selectedElement?.data.cloudId ?? "";
     useEffect(() => {
         if (!selectedCloudId) { setCurrentProjects([]); return; }
@@ -106,12 +105,7 @@ export const JiraPreBody = ({ integrationKey }: { integrationKey: string }) => {
 
     const handleSiteChange = async (cloudId: string, cloudName: string) => {
         if (!tree.selectedElement) return;
-        tree.update(tree.selectedElement.data.id, {
-            cloudId,
-            cloudName,
-            projectKey: "",
-            projectName: "",
-        });
+        tree.update(tree.selectedElement.data.id, { cloudId, cloudName, projectKey: "", projectName: "" });
 
         const cached = projectsCache.current.get(cloudId);
         if (cached) { setCurrentProjects(cached); return; }
@@ -132,9 +126,7 @@ export const JiraPreBody = ({ integrationKey }: { integrationKey: string }) => {
 
     const makeNewIssue = (type: string): JiraElement => {
         const defaultSite = sites.find((s) => s.id === defaultCloudId);
-        const defaultProj = projectsCache.current.get(defaultCloudId)?.find(
-            (p) => p.key === defaultProjectKey
-        );
+        const defaultProj = projectsCache.current.get(defaultCloudId)?.find((p) => p.key === defaultProjectKey);
         return {
             id: crypto.randomUUID(),
             type,
@@ -149,9 +141,9 @@ export const JiraPreBody = ({ integrationKey }: { integrationKey: string }) => {
     };
 
     return (
-        <div className="w-full flex flex-row gap-2 items-stretch min-h-0 h-[clamp(320px,65vh,640px)]">
+        <div className="w-full flex flex-col lg:flex-row gap-2 items-stretch lg:h-[64vh] min-h-0">
 
-            <div className="flex-3 min-w-0 max-h-[calc(100vh-160px)]">
+            <div className="min-w-0 lg:flex-[3] lg:max-h-[calc(100vh-160px)]">
                 <JiraIssuePane
                     elements={tree.elements}
                     availableTypes={availableTypes}
@@ -163,17 +155,17 @@ export const JiraPreBody = ({ integrationKey }: { integrationKey: string }) => {
                 />
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm flex-[6] flex flex-col min-h-0">
-                <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-2.5 flex-shrink-0">
-                    <div className="grid h-8 w-8 place-items-center rounded-lg">
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm lg:flex-[6] flex flex-col min-h-0">
+                <div className={`flex items-center gap-2 border-b border-slate-100 flex-shrink-0 ${s("px-4 py-2.5", "px-3 py-1.5")}`}>
+                    <div className={`grid place-items-center rounded-lg ${s("h-8 w-8", "h-6 w-6")}`}>
                         <JiraMark />
                     </div>
-                    <h2 className="text-base font-semibold text-slate-900">Jira</h2>
+                    <h2 className={`font-semibold text-slate-900 ${s("text-base", "text-sm")}`}>Jira</h2>
                 </div>
 
-                <div className="p-5 flex-1 min-h-0 flex flex-col">
+                <div className={`flex-1 min-h-0 flex flex-col ${s("p-5", "p-3")}`}>
                     {error && (
-                        <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                        <div className={`rounded-xl border border-rose-200 bg-rose-50 text-rose-700 ${s("mb-4 px-4 py-3 text-sm", "mb-2 px-3 py-2 text-xs")}`}>
                             {error}
                         </div>
                     )}
@@ -192,11 +184,11 @@ export const JiraPreBody = ({ integrationKey }: { integrationKey: string }) => {
                         </div>
                     ) : (
                         <div className="flex flex-1 items-center justify-center">
-                            <div className="flex max-w-sm flex-col items-center gap-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center">
+                            <div className={`flex max-w-sm flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-center ${s("gap-4 px-6 py-8", "gap-2 px-4 py-5")}`}>
                                 <JiraMark />
                                 <div>
-                                    <h3 className="text-sm font-semibold text-slate-900">Select an issue to get started</h3>
-                                    <p className="mt-1 text-sm text-slate-600">Choose an issue from the list to view and edit its details.</p>
+                                    <h3 className={`font-semibold text-slate-900 ${s("text-sm", "text-xs")}`}>Select an issue to get started</h3>
+                                    <p className={`mt-1 text-slate-600 ${s("text-sm", "text-xs")}`}>Choose an issue from the list to view and edit its details.</p>
                                 </div>
                             </div>
                         </div>

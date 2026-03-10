@@ -129,6 +129,7 @@ Hierarchy requirements:
 
 Meeting Notes:
 ${noteContent}
+${Transcript?.trim() ? `\nMeeting Transcript (use as additional context):\n${Transcript}` : ""}
 
 Return ONLY valid JSON.
 `;

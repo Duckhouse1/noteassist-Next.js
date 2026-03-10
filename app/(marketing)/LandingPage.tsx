@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function LandingPage() {
 
@@ -47,7 +48,7 @@ export default function LandingPage() {
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-          --bg:           #E8E5E0;
+          --bg:           #f2f0eb;
           --bg-deep:      #DEDAD4;
           --surface:      #F0EDE8;
           --surface-hi:   #F8F6F3;
@@ -545,9 +546,20 @@ export default function LandingPage() {
       {/* ══ HEADER ══════════════════════════════════════════ */}
       <header>
         <div className="wrap nav-inner">
-          <Link href="/" className="logo">
-            Nor<span className="logo-accent">bit</span>
-          </Link>
+          <div className="flex items-center ">
+            <Link href="/" className="text-xl font-bold flex items-center">
+              <Image
+                alt="Norbit logo"
+                src="/BrownIcon.png"
+                width={100}
+                height={40}
+                className=""
+              />
+
+              Nor<span className=" text-amber-950">bit</span>
+            </Link>
+          </div>
+
           <nav>
             <a href="#how">How it works</a>
             <a href="#integrations">Integrations</a>
@@ -627,11 +639,11 @@ export default function LandingPage() {
               <div className="strip-logos">
                 {[
                   { label: "Azure DevOps", bg: "#0078D4", icon: <svg width="11" height="11" viewBox="0 0 32 32" fill="none"><path d="M0 17.677V7.37l6-5.603V1l11.266 8.083L6.411 11.3v12.28L0 17.677zm31.956-7.403L20.13 0v3.856L8.44 10.963l-.003 8.89 6.08 2.073V27.6l8.677-5.8-6.52-2.086v-6.32l15.28-3.82z" fill="#fff" /></svg> },
-                  { label: "Outlook",      bg: "#0078D4", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M3 6h10v12H3z" fill="#fff" opacity=".9" /><path d="M13 6l8 4v8l-8 4V6z" fill="#fff" opacity=".7" /></svg> },
-                  { label: "SharePoint",   bg: "#038387", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="9" r="6" fill="#fff" opacity=".85" /><circle cx="15" cy="15" r="6" fill="#fff" opacity=".55" /><circle cx="9" cy="9" r="3.5" fill="#038387" /></svg> },
-                  { label: "Jira",         bg: "#0052CC", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 12l4 4 6-6 6 6 4-4L12 2z" fill="#fff" opacity=".9" /><path d="M12 10l-4 4 4 4 4-4-4-4z" fill="#fff" /></svg> },
-                  { label: "ClickUp",      bg: "#7B68EE", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M3 14l4-5 5 4 5-6 4 3" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg> },
-                  { label: "Notion",       bg: "#191919", icon: <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M7 7h6M7 12h10M7 17h8" stroke="#fff" strokeWidth="2" strokeLinecap="round" /></svg> },
+                  { label: "Outlook", bg: "#0078D4", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M3 6h10v12H3z" fill="#fff" opacity=".9" /><path d="M13 6l8 4v8l-8 4V6z" fill="#fff" opacity=".7" /></svg> },
+                  { label: "SharePoint", bg: "#038387", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="9" r="6" fill="#fff" opacity=".85" /><circle cx="15" cy="15" r="6" fill="#fff" opacity=".55" /><circle cx="9" cy="9" r="3.5" fill="#038387" /></svg> },
+                  { label: "Jira", bg: "#0052CC", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 12l4 4 6-6 6 6 4-4L12 2z" fill="#fff" opacity=".9" /><path d="M12 10l-4 4 4 4 4-4-4-4z" fill="#fff" /></svg> },
+                  { label: "ClickUp", bg: "#7B68EE", icon: <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M3 14l4-5 5 4 5-6 4 3" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg> },
+                  { label: "Notion", bg: "#191919", icon: <svg width="10" height="10" viewBox="0 0 24 24" fill="none"><path d="M7 7h6M7 12h10M7 17h8" stroke="#fff" strokeWidth="2" strokeLinecap="round" /></svg> },
                 ].map((i) => (
                   <div key={i.label} className="int-pill">
                     <div className="int-pill-icon" style={{ background: i.bg }}>{i.icon}</div>
@@ -657,9 +669,9 @@ export default function LandingPage() {
           </div>
           <div className="steps">
             {[
-              { n: "01", title: "Write your notes",   desc: "Capture the meeting in a clean editor. Tag owners, deadlines, and decisions however feels natural." },
-              { n: "02", title: "Select actions",      desc: "Choose what needs to happen next — DevOps items, Outlook drafts, SharePoint uploads, Jira issues, and more." },
-              { n: "03", title: "Review AI output",    desc: "Azure OpenAI generates fully structured work items, emails, and tasks. Edit everything before anything is created." },
+              { n: "01", title: "Write your notes", desc: "Capture the meeting in a clean editor. Tag owners, deadlines, and decisions however feels natural." },
+              { n: "02", title: "Select actions", desc: "Choose what needs to happen next — DevOps items, Outlook drafts, SharePoint uploads, Jira issues, and more." },
+              { n: "03", title: "Review AI output", desc: "Azure OpenAI generates fully structured work items, emails, and tasks. Edit everything before anything is created." },
             ].map((s, i) => (
               <div key={s.n} className="step-card reveal" data-n={s.n} style={{ transitionDelay: `${i * 0.1}s` }}>
                 <div className="step-num">{s.n}</div>
@@ -711,11 +723,11 @@ export default function LandingPage() {
           <div className="integration-grid">
             {[
               { abbr: "Az", name: "Azure DevOps", desc: "Create bugs, tasks, and user stories directly from your notes." },
-              { abbr: "Ou", name: "Outlook",      desc: "Draft follow-up emails and schedule meetings from action output." },
-              { abbr: "SP", name: "SharePoint",   desc: "Upload cleaned notes and documents to the right folder automatically." },
-              { abbr: "Ji", name: "Jira",         desc: "Generate issues and epics with the right type, project, and assignee." },
-              { abbr: "Cu", name: "ClickUp",      desc: "Create tasks and docs in your ClickUp workspace from meeting output." },
-              { abbr: "No", name: "Notion",       desc: "Push notes and decisions to pages and databases in Notion." },
+              { abbr: "Ou", name: "Outlook", desc: "Draft follow-up emails and schedule meetings from action output." },
+              { abbr: "SP", name: "SharePoint", desc: "Upload cleaned notes and documents to the right folder automatically." },
+              { abbr: "Ji", name: "Jira", desc: "Generate issues and epics with the right type, project, and assignee." },
+              { abbr: "Cu", name: "ClickUp", desc: "Create tasks and docs in your ClickUp workspace from meeting output." },
+              { abbr: "No", name: "Notion", desc: "Push notes and decisions to pages and databases in Notion." },
             ].map((item, idx) => (
               <div key={item.name} className="int-card reveal" style={{ transitionDelay: `${idx * 0.05}s` }}>
                 <div className="int-icon">{item.abbr}</div>
@@ -796,12 +808,12 @@ export default function LandingPage() {
           </div>
           <div className="faq-grid">
             {[
-              { q: "How does the AI part actually work?",         a: "You pick one or more actions. For each, Norbit calls Azure OpenAI and generates a fully structured preview — work item fields, email drafts, upload targets. You review and edit everything before it's executed." },
-              { q: "Do you store tokens from my integrations?",   a: "Integrations connect via OAuth. Tokens are stored encrypted so you don't get authentication loops in the middle of your workflow." },
-              { q: "Can our team share notes across the org?",    a: "Yes. Users belong to an organization, and orgs share notes, action templates, and automation patterns consistently across teams." },
-              { q: "How do we avoid accidental creation?",        a: "The preview step is the guardrail — nothing is created until you confirm. You can also add org-level policies requiring confirmation for specific action types." },
-              { q: "Which integrations are live today?",          a: "Azure DevOps, Outlook, SharePoint, ClickUp, Jira, and Notion are supported. The architecture is designed to expand as you add connectors." },
-              { q: "Where is our data stored?",                   a: "Data is stored in Azure SQL with encryption and standard transport security. Enterprise plans can add stricter org-level controls." },
+              { q: "How does the AI part actually work?", a: "You pick one or more actions. For each, Norbit calls Azure OpenAI and generates a fully structured preview — work item fields, email drafts, upload targets. You review and edit everything before it's executed." },
+              { q: "Do you store tokens from my integrations?", a: "Integrations connect via OAuth. Tokens are stored encrypted so you don't get authentication loops in the middle of your workflow." },
+              { q: "Can our team share notes across the org?", a: "Yes. Users belong to an organization, and orgs share notes, action templates, and automation patterns consistently across teams." },
+              { q: "How do we avoid accidental creation?", a: "The preview step is the guardrail — nothing is created until you confirm. You can also add org-level policies requiring confirmation for specific action types." },
+              { q: "Which integrations are live today?", a: "Azure DevOps, Outlook, SharePoint, ClickUp, Jira, and Notion are supported. The architecture is designed to expand as you add connectors." },
+              { q: "Where is our data stored?", a: "Data is stored in Azure SQL with encryption and standard transport security. Enterprise plans can add stricter org-level controls." },
             ].map((faq, i) => (
               <div key={faq.q} className="faq-item reveal" style={{ transitionDelay: `${i * 0.05}s` }}>
                 <div className="faq-q">{faq.q}</div>

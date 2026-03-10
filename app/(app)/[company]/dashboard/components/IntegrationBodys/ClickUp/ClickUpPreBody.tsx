@@ -1,26 +1,23 @@
-// EXAMPLE: What ClickUpPreBody looks like AFTER using the shared hook
-// Compare this to the ~280 lines it was before — all the tree logic is gone.
-
 import { useContext, useEffect, useRef, useState } from "react";
-import { UserConfigContext } from "@/app/Contexts";
+import { UserConfigContext, clientIsFromTeams } from "@/app/Contexts";
 import { useSessionStorageState } from "@/app/Components/Hooks/useSessionStorage";
 import { useElementTree } from "@/app/Components/Hooks/useElementTree";
 import { ClickUpSpace, ClickUpList, ClickUpElements, ClickUpTaskType } from "@/lib/Integrations/ClickUp/Configuration";
 import { ClickUpTaskPane } from "./ClickUpTaskPane";
 import { ClickUpTaskInfoPanel } from "./ClickUpTaskInfoPanel";
 import ClickUpFetchFunctions from "@/lib/Integrations/ClickUp/FetchFunctions";
-import { select } from "framer-motion/client";
 
 export default function ClickUpPreBody({ integrationKey }: { integrationKey: string }) {
     const { configs } = useContext(UserConfigContext);
+    const { fromTeams } = useContext(clientIsFromTeams);
+    const s = (normal: string, small: string) => fromTeams ? small : normal;
+
     const [error, setError] = useState<string | null>(null);
 
-    // Config defaults
     const clickUpConfig = configs.find(c => c.provider === "clickup")?.config;
     const defaultSpaceId = clickUpConfig?.DefaultSpaceID?.trim() ?? "";
     const defaultListId = clickUpConfig?.DefaultListID?.trim() ?? "";
 
-    // ✅ ALL tree logic is now one line
     const tree = useElementTree<ClickUpElements>({
         integrationKey,
         storagePrefix: "clickup",
@@ -29,7 +26,6 @@ export default function ClickUpPreBody({ integrationKey }: { integrationKey: str
         buildResponse: (elements) => ({ type: "clickup_tasks", content: { elements } }),
     });
 
-    // Fetched metadata
     const { value: spaces, setValue: setSpaces } = useSessionStorageState<ClickUpSpace[]>({
         key: `clickup:spaces:${integrationKey}`,
         initialValue: [],
@@ -39,7 +35,6 @@ export default function ClickUpPreBody({ integrationKey }: { integrationKey: str
         initialValue: [],
     });
 
-    // Fetch on mount
     useEffect(() => {
         let cancelled = false;
         (async () => {
@@ -56,7 +51,6 @@ export default function ClickUpPreBody({ integrationKey }: { integrationKey: str
         return () => { cancelled = true; };
     }, []);
 
-    // Apply defaults
     const didApplyDefaults = useRef(false);
     useEffect(() => {
         if (didApplyDefaults.current || spaces.length === 0) return;
@@ -64,7 +58,6 @@ export default function ClickUpPreBody({ integrationKey }: { integrationKey: str
         const defList = lists.find(l => l.id === defaultListId);
         if (!defSpace && !defList) return;
 
-        // ✅ One call applies a transform to every node in the tree
         tree.applyToTree(n => ({
             ...n,
             space: n.space?.id ? n.space : defSpace ?? n.space,
@@ -73,7 +66,6 @@ export default function ClickUpPreBody({ integrationKey }: { integrationKey: str
         didApplyDefaults.current = true;
     }, [spaces, lists]);
 
-    // Helpers
     const makeNewElement = (type: ClickUpTaskType): ClickUpElements => ({
         id: crypto.randomUUID(),
         type,
@@ -83,16 +75,7 @@ export default function ClickUpPreBody({ integrationKey }: { integrationKey: str
         space: spaces.find(s => s.id === defaultSpaceId),
         list: lists.find(l => l.id === defaultListId),
     });
-    // const UpdateChildrenSpace = async (elementId: string, space: ClickUpSpace) => {
-    //     tree.update(elementId,{space,list:undefined} as Partial<ClickUpElements>)
-    //     if(tree.selectedElement?.data.children && tree.selectedElement?.data?.children.length > 0){
-    //         for (const element of tree.selectedElement.data.children) {
-               
-    //             UpdateChildrenSpace(element)
-    //         }
-    //     }
-        
-    // }
+
     const onSpaceChange = async (spaceId: string) => {
         const picked = spaces.find(s => s.id === spaceId);
         if (!picked || !tree.selectedElement) return;
@@ -106,13 +89,10 @@ export default function ClickUpPreBody({ integrationKey }: { integrationKey: str
         } catch { /* keep existing lists */ }
     };
 
-    // ✅ Render is now clean — no tree logic mixed in
     return (
-        <div
-  className="w-full flex flex-row gap-2 items-stretch min-h-0
-             h-[clamp(320px,65vh,640px)]"
->          
-                <div className="flex-3 min-w-0 max-h-[calc(100vh-160px)]">
+        <div className="w-full flex flex-col lg:flex-row gap-2 items-stretch lg:h-[64vh] min-h-0">
+
+            <div className="min-w-0 lg:flex-[3] lg:max-h-[calc(100vh-160px)]">
                 <ClickUpTaskPane
                     elements={tree.elements}
                     onClick={tree.select}
@@ -123,12 +103,10 @@ export default function ClickUpPreBody({ integrationKey }: { integrationKey: str
                 />
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm flex-[6] flex flex-col min-h-0">
-                {/* ... header same as before ... */}
-                {/* Header */}
-                <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5 flex-shrink-0">
+            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm lg:flex-[6] flex flex-col min-h-0">
+                <div className={`flex items-center justify-between gap-2 border-b border-slate-100 flex-shrink-0 ${s("px-4 py-2.5", "px-3 py-1.5")}`}>
                     <div className="flex items-center gap-2">
-                        <div className="grid h-8 w-8 place-items-center rounded-lg">
+                        <div className={`grid place-items-center rounded-lg ${s("h-8 w-8", "h-6 w-6")}`}>
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M3.5 17.5L7.5 13.5C9.5 16.5 14.5 16.5 16.5 13.5L20.5 17.5C17 22.5 7 22.5 3.5 17.5Z" fill="url(#cu_h_1)" />
                                 <path d="M7.5 10.5L12 15L16.5 10.5L20 14C17 19 7 19 4 14L7.5 10.5Z" fill="url(#cu_h_2)" />
@@ -145,29 +123,22 @@ export default function ClickUpPreBody({ integrationKey }: { integrationKey: str
                                 </defs>
                             </svg>
                         </div>
-                        <h2 className="text-base font-semibold text-slate-900">
-                            ClickUp
-                        </h2>
+                        <h2 className={`font-semibold text-slate-900 ${s("text-base", "text-sm")}`}>ClickUp</h2>
                     </div>
 
                     <button
                         title="Fetches latest data from your ClickUp"
-                        className="
-            inline-flex items-center gap-1.5
-            rounded-lg border border-slate-200
-            px-2.5 py-1.5
-            text-xs font-medium text-slate-600
-            hover:bg-slate-50 hover:text-slate-900
-            active:bg-slate-100
-            transition
-        "
+                        className={`inline-flex items-center gap-1.5 rounded-lg border border-slate-200 font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 active:bg-slate-100 transition ${s("px-2.5 py-1.5 text-xs", "px-2 py-1 text-xs")}`}
                     >
                         Refresh ClickUp data
                     </button>
                 </div>
-                <div className="p-5 flex-1 min-h-0 flex flex-col">
+
+                <div className={`flex-1 min-h-0 flex flex-col ${s("p-5", "p-3")}`}>
                     {error && (
-                        <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+                        <div className={`rounded-xl border border-rose-200 bg-rose-50 text-rose-700 ${s("mb-4 px-4 py-3 text-sm", "mb-2 px-3 py-2 text-xs")}`}>
+                            {error}
+                        </div>
                     )}
                     {tree.selectedElement ? (
                         <ClickUpTaskInfoPanel
@@ -179,7 +150,7 @@ export default function ClickUpPreBody({ integrationKey }: { integrationKey: str
                         />
                     ) : (
                         <div className="flex flex-1 items-center justify-center">
-                            <div className="flex max-w-sm flex-col items-center gap-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center">
+                            <div className={`flex max-w-sm flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-center ${s("gap-4 px-6 py-8", "gap-2 px-4 py-5")}`}>
                                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M3.5 17.5L7.5 13.5C9.5 16.5 14.5 16.5 16.5 13.5L20.5 17.5C17 22.5 7 22.5 3.5 17.5Z" fill="url(#cu_e_1)" />
                                     <path d="M12 3L4 11L7.5 14L12 9.5L16.5 14L20 11L12 3Z" fill="url(#cu_e_2)" />
@@ -195,14 +166,11 @@ export default function ClickUpPreBody({ integrationKey }: { integrationKey: str
                                     </defs>
                                 </svg>
                                 <div>
-                                    <h3 className="text-sm font-semibold text-slate-900">
-                                        Select a task to get started
-                                    </h3>
-                                    <p className="mt-1 text-sm text-slate-600">
-                                        Choose a Task or Subtask from the list to view and edit its details.
-                                    </p>
+                                    <h3 className={`font-semibold text-slate-900 ${s("text-sm", "text-xs")}`}>Select a task to get started</h3>
+                                    <p className={`mt-1 text-slate-600 ${s("text-sm", "text-xs")}`}>Choose a Task or Subtask from the list to view and edit its details.</p>
                                 </div>
-                            </div>                        </div>
+                            </div>
+                        </div>
                     )}
                 </div>
             </div>

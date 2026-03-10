@@ -50,6 +50,18 @@ export const CurrentSiteContext = createContext<CurrentSite>({
     currentPage: "frontpage",
     setCurrentPage: () => {}
 })
+
+//TEAMS -------------------------------------------------------
+
+
+
+interface isFromTeamsContextProps{
+    fromTeams: boolean
+}
+export const clientIsFromTeams = createContext<isFromTeamsContextProps>({
+    fromTeams: false,
+})
+
 //DEVOPS ----------------------------------------------------
 
 
