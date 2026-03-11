@@ -4,22 +4,22 @@ import { useEffect } from "react";
 import * as microsoftTeams from "@microsoft/teams-js";
 
 export default function TeamsLogin() {
-    // useEffect(() => {
-    //     microsoftTeams.app.initialize().catch(() => {
-    //         // Not running inside Teams — safe to ignore in dev
-    //     });
-    // }, []);
+    useEffect(() => {
+        microsoftTeams.app.initialize().catch(() => {
+            // Not running inside Teams — safe to ignore in dev
+        });
+    }, []);
 
     const handleLogin = async () => {
         try {
-            window.location.href = "/login?teams=true";
-            // await microsoftTeams.authentication.authenticate({
-            //     url: `${window.location.origin}/login?teams=true`,
-            //     width: 600,
-            //     height: 535,
-            // });
-            // // Promise resolver når notifySuccess() kaldes i popup → reload tabben
-            // window.location.reload();
+            // window.location.href = "/login?teams=true";
+            await microsoftTeams.authentication.authenticate({
+                url: `${window.location.origin}/login?teams=true`,
+                width: 600,
+                height: 535,
+            });
+            // Promise resolver når notifySuccess() kaldes i popup → reload tabben
+            window.location.reload();
         } catch (error) {
             console.error("Login failed:", error);
         }
