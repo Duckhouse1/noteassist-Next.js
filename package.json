@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@azure/identity": "^4.13.0",
+    "@microsoft/teams-js": "^2.49.0",
     "@next-auth/prisma-adapter": "^1.0.7",
     "@prisma/adapter-mssql": "^7.4.0",
     "@prisma/client": "^7.4.0",

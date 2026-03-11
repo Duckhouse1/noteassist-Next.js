@@ -86,8 +86,7 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
 
 
     return (
-        <div className="mx-auto w-full max-w-7xl 2xl:max-w-[1600px] px-4 sm:px-6 lg:px-8 py-8 pt-2">
-            {/* Top row */}
+        <div className="mx-auto w-full max-w-7xl 2xl:max-w-[1600px] px-4 sm:px-6 lg:px-8 py-8 pt-2 overflow-scroll lg:overflow-visible">            {/* Top row */}
             <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_auto_1fr] md:items-center">
                 {/* Left: current action */}
                 <div className="inline-flex max-w-xs flex-col gap-1 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
@@ -250,6 +249,7 @@ export default function ActionsPage({ selectedActions, onGoToFrontPage }: { sele
                                     key={currentIndex}   // ← tvinger React til at mounte en frisk komponent
                                     action={currentAction}
                                     onActionComplete={finishCurrentAction}
+                                    isfromTeams={false}
                                 />
                             </ActionExecutionContext.Provider>
                         </ShowNotesBodyContext.Provider>

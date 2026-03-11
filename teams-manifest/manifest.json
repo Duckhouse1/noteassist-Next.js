@@ -1,0 +1,48 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "version": "1.0.0",
+  "id": "306ee71a-c31e-4141-ba80-93586245f6a4",
+  "name": {
+    "short": "Norbit",
+    "full": "Norbit – AI-powered task management"
+  },
+  "description": {
+    "short": "Manage DevOps, Jira & ClickUp tasks with AI",
+    "full": "Norbit brings your Azure DevOps, Jira, and ClickUp workflows directly into Microsoft Teams. Use AI-powered actions to create and manage tasks without leaving your team's workspace."
+  },
+  "developer": {
+    "name": "Norbit",
+    "websiteUrl": "https://www.norbit.app",
+    "privacyUrl": "https://www.norbit.app/privacy",
+    "termsOfUseUrl": "https://www.norbit.app/terms"
+  },
+  "icons": {
+    "color": "icon-192.png",
+    "outline": "icon-32.png"
+  },
+  "accentColor": "#6b22a8",
+  "staticTabs": [
+    {
+      "entityId": "norbit-home",
+      "name": "Norbit",
+      "contentUrl": "https://www.norbit.app/teams",
+      "websiteUrl": "https://www.norbit.app/teams",
+      "scopes": [
+        "personal"
+      ]
+    }
+  ],
+  "validDomains": [
+    "www.norbit.app"
+  ],
+  "webApplicationInfo": {
+    "id": "306ee71a-c31e-4141-ba80-93586245f6a4",
+    "resource": "api://www.norbit.app/306ee71a-c31e-4141-ba80-93586245f6a4"
+  },
+  "permissions": [
+    "identity"
+  ],
+  "showLoadingIndicator": true,
+  "isFullScreen": false
+}

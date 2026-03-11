@@ -56,6 +56,7 @@ export default function DashboardClient({ company, mode, memberShip }: { company
     const [actionAISolutions, setActionAISolutions] = useState<Map<string, OpenAIResponse[]>>(() => new Map());
     const isPersonalOrg = mode === "personal";
 
+    
     const LoadIntegrationState = async () => {
         try {
             const res = await fetch(`/api/user/Integrations/state?org=${encodeURIComponent(company)}`);

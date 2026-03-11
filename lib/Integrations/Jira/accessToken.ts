@@ -18,17 +18,15 @@ export async function getJiraAccessToken(userId: string, organizationId: string)
             expiresAt: true,
             id: true,
         },
-    });
-
+    })
     if (!conn?.accessToken) return null;
-
     const accessToken = decrypt(conn.accessToken);
 
     const expiresAt = conn.expiresAt?.getTime() ?? 0;
     const isExpired = expiresAt && Date.now() > expiresAt - 60_000;
 
     if (!isExpired) return accessToken;
-
+    console.log("jira token is expired, trying to fetch new one");
     const newAccessToken = await refreshJiraAccessToken(conn);
     return newAccessToken;
 }
