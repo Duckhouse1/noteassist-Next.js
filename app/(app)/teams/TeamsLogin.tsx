@@ -12,16 +12,15 @@ export default function TeamsLogin() {
 
     const handleLogin = async () => {
         try {
-            // window.location.href = "/login?teams=true";
             await microsoftTeams.authentication.authenticate({
                 url: `${window.location.origin}/login?teams=true`,
                 width: 600,
                 height: 535,
             });
-            // Promise resolver når notifySuccess() kaldes i popup → reload tabben
             window.location.reload();
         } catch (error) {
             console.error("Login failed:", error);
+            alert("auth failed: " + JSON.stringify(error)); // temp debug
         }
     };
 

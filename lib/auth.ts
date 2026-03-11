@@ -39,7 +39,17 @@ async function ensurePersonalOrg(userId: string) {
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
-
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "none",
+        path: "/",
+        secure: true,
+      },
+    },
+  },
   providers: [
     CredentialsProvider({
       name: "Credentials",
