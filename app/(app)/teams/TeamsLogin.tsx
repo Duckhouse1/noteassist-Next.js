@@ -5,9 +5,14 @@ import * as microsoftTeams from "@microsoft/teams-js";
 
 export default function TeamsLogin() {
     useEffect(() => {
-        microsoftTeams.app.initialize().catch(() => {
-            // Not running inside Teams — safe to ignore in dev
-        });
+        microsoftTeams.app.initialize()
+            .then(() => {
+                microsoftTeams.app.notifyAppLoaded();
+                microsoftTeams.app.notifySuccess();
+            })
+            .catch(() => {
+                // Not running inside Teams — safe to ignore in dev
+            });
     }, []);
 
     const handleLogin = async () => {
