@@ -39,7 +39,7 @@ export default function TeamsClient({
     mode: OrganisationMode;
     memberShip: string;
 }) {
-    
+
     const [selectedActions, setSelectedActions] = useState<Action[]>([]);
     const [currentPage, setCurrentPage] = useState<Pages>("frontpage");
     const [notes, setNotes] = useState<Note>({ title: "", content: "", Transcript: "", id: null });
@@ -125,9 +125,11 @@ export default function TeamsClient({
 
     useEffect(() => {
         const initTeams = async () => {
-               await microsoftTeams.app.initialize();
+            await microsoftTeams.app.initialize();
+            microsoftTeams.app.notifyAppLoaded();
+            microsoftTeams.app.notifySuccess();
         }
-        initTeams()
+        initTeams();
         LoadIntegrationState().catch((err) => console.log("Error fetching state:", err));
     }, []);
 
