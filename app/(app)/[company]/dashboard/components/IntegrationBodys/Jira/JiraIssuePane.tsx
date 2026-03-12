@@ -9,15 +9,19 @@ import { clientIsFromTeams } from "@/app/Contexts";
 interface JiraIssuePaneProps {
     elements: JiraElement[];
     availableTypes: string[];
+    getIssueTypesForElement: (cloudId?: string, projectKey?: string) => string[];
     selectedElement: SelectedElement<JiraElement> | null;
     onClick: (el: SelectedElement<JiraElement>) => void;
     onRemove: (id: string) => void;
     onAddRoot: (type: string) => void;
-    onAddChild: (parentId: string, type: string) => void;
+    // parent element passed so nodes can resolve their own project's types
+    onAddChild: (parentElement: JiraElement, type: string) => void;
 }
 
-
-export function JiraIssuePane({ elements, availableTypes, selectedElement, onClick, onRemove, onAddRoot, onAddChild }: JiraIssuePaneProps) {
+export function JiraIssuePane({
+    elements, availableTypes, getIssueTypesForElement,
+    selectedElement, onClick, onRemove, onAddRoot, onAddChild,
+}: JiraIssuePaneProps) {
     const { fromTeams } = useContext(clientIsFromTeams);
     const s = (normal: string, small: string) => fromTeams ? small : normal;
 
@@ -50,13 +54,16 @@ export function JiraIssuePane({ elements, availableTypes, selectedElement, onCli
         return () => document.removeEventListener("mousedown", handler);
     }, []);
 
+    // Types for the top-level "+ New Issue" button — use global fallback since
+    // there's no parent element to derive a project from yet.
+    const rootTypes = availableTypes;
+
     const selectedCardClass =
         "ring-1 ring-black shadow-lg bg-gradient-to-r from-gray-200 to-white border-black " +
         "before:content-[''] before:absolute before:left-0 before:top-0 before:h-full before:w-0.5 before:rounded-l-lg before:bg-gray-600";
 
     return (
-        // <div className={`rounded-2xl border border-slate-200 bg-white shadow-sm w-full min-w-0 flex flex-col min-h-0 h-full ${s("p-6", "p-3")}`}>
-            <div className={`rounded-2xl border border-slate-200 bg-white shadow-sm w-full min-w-0 p-3 lg:p-6 flex flex-col min-h-[40vh] max-h-[40vh] lg:min-h-[64vh] lg:max-h-[64vh] ${s("p-6", "p-3")}`}>
+        <div className={`rounded-2xl border border-slate-200 bg-white shadow-sm w-full min-w-0 p-3 lg:p-6 flex flex-col min-h-[40vh] max-h-[40vh] lg:min-h-[64vh] lg:max-h-[64vh] ${s("p-6", "p-3")}`}>
 
             <h1 className={`font-semibold text-slate-900 flex-shrink-0 ${s("text-lg mb-2", "text-sm mb-1")}`}>Jira Issues</h1>
 
@@ -71,10 +78,10 @@ export function JiraIssuePane({ elements, availableTypes, selectedElement, onCli
                     </button>
                     {openDropdown && (
                         <div className={`absolute top-full left-0 mt-1 rounded-lg border border-slate-200 bg-white shadow-lg z-50 overflow-hidden ${s("w-44", "w-36")}`}>
-                            {availableTypes.length === 0 ? (
+                            {rootTypes.length === 0 ? (
                                 <div className={`text-slate-500 ${s("px-3 py-2 text-xs", "px-2 py-1 text-xs")}`}>No issue types configured</div>
                             ) : (
-                                availableTypes.map((t) => (
+                                rootTypes.map((t) => (
                                     <button key={t} type="button"
                                         onClick={() => { onAddRoot(t); setOpenDropdown(false); }}
                                         className={`w-full text-left text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition ${s("px-3 py-2 text-sm", "px-2 py-1 text-xs")}`}
@@ -100,7 +107,7 @@ export function JiraIssuePane({ elements, availableTypes, selectedElement, onCli
                             indexLabel={`${i + 1}`}
                             depth={0}
                             selectedCardClass={selectedCardClass}
-                            availableTypes={availableTypes}
+                            getIssueTypesForElement={getIssueTypesForElement}
                             isSelected={isSelected}
                             domIdFor={domIdFor}
                             onClick={onClick}

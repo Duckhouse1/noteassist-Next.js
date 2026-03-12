@@ -9,21 +9,25 @@ type JiraIssueNodeProps = {
     indexLabel: string;
     depth?: number;
     selectedCardClass: string;
-    availableTypes: string[];
+    /** Returns the project-specific issue types for a given cloud+project, or the global fallback. */
+    getIssueTypesForElement: (cloudId?: string, projectKey?: string) => string[];
     isSelected: (id: string) => boolean;
     domIdFor: (id: string) => string;
     onClick: (el: SelectedElement<JiraElement>) => void;
     onRemove: (id: string) => void;
-    onAddChild: (parentId: string, type: string) => void;
+    onAddChild: (parentElement: JiraElement, type: string) => void;
 };
 
 export function JiraIssueNode({
-    node, indexLabel, depth = 0, selectedCardClass, availableTypes,
+    node, indexLabel, depth = 0, selectedCardClass, getIssueTypesForElement,
     isSelected, domIdFor, onClick, onRemove, onAddChild,
 }: JiraIssueNodeProps) {
     const selected = isSelected(node.id);
     const [openDropdown, setOpenDropdown] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // Types specific to this node's project
+    const childTypes = getIssueTypesForElement(node.cloudId, node.projectKey);
 
     const shrinkPerLevel = 24;
     const widthStyle = depth === 0
@@ -60,8 +64,8 @@ export function JiraIssueNode({
                     <span className="text-slate-600 group-hover:text-red-400 text-sm font-semibold">×</span>
                 </button>
 
-                <div className="flex items-end gap-3 min-w-0">
-                    <span className="self-start flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-md bg-white border border-slate-200 text-sm font-semibold text-slate-700">
+                <div className="flex items-start gap-3 min-w-0">
+                    <span className="mt-0.5 flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-md bg-white border border-slate-200 text-sm font-semibold text-slate-700">
                         {indexLabel}
                     </span>
                     <div className="flex-1 min-w-0">
@@ -71,15 +75,26 @@ export function JiraIssueNode({
                             </span>
                         </div>
                         <div className="font-semibold text-slate-900 truncate">{node.title}</div>
-                        {(node.cloudName || node.projectName) && (
-                            <div className="text-xs text-slate-400 mt-0.5 truncate">
-                                {[node.cloudName, node.projectName].filter(Boolean).join(" · ")}
-                            </div>
-                        )}
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            {(node.cloudName || node.projectName) && (
+                                <span className="text-xs text-slate-400 truncate">
+                                    {[node.cloudName, node.projectName].filter(Boolean).join(" · ")}
+                                </span>
+                            )}
+                            {node.assigneeName && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[11px] text-slate-500">
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                                    </svg>
+                                    {node.assigneeName}
+                                </span>
+                            )}
+                        </div>
                     </div>
 
-                    {availableTypes.length > 0 && (
-                        <div className="ml-auto relative" onClick={(e) => e.stopPropagation()} ref={dropdownRef}>
+                    {/* + Add child — uses this node's project types */}
+                    {childTypes.length > 0 && (
+                        <div className="ml-auto shrink-0 relative" onClick={(e) => e.stopPropagation()} ref={dropdownRef}>
                             <button
                                 type="button"
                                 onClick={() => setOpenDropdown((v) => !v)}
@@ -88,10 +103,17 @@ export function JiraIssueNode({
                                 + Add
                             </button>
                             {openDropdown && (
-                                <div className="absolute right-0 mt-1 w-40 rounded-lg border border-slate-200 bg-white shadow-lg z-50 overflow-hidden">
-                                    {availableTypes.map((t) => (
+                                <div className="absolute right-0 mt-1 w-44 rounded-lg border border-slate-200 bg-white shadow-lg z-50 overflow-hidden">
+                                    <div className="px-3 py-1.5 border-b border-slate-100">
+                                        <p className="text-[10px] uppercase tracking-wider text-slate-400">
+                                            {node.projectName || node.projectKey
+                                                ? `${node.projectName || node.projectKey} types`
+                                                : "Child type"}
+                                        </p>
+                                    </div>
+                                    {childTypes.map((t) => (
                                         <button key={t} type="button"
-                                            onClick={() => { onAddChild(node.id, t); setOpenDropdown(false); }}
+                                            onClick={() => { onAddChild(node, t); setOpenDropdown(false); }}
                                             className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition"
                                         >
                                             <div className="flex items-center gap-2">
@@ -113,8 +135,9 @@ export function JiraIssueNode({
                         <JiraIssueNode
                             key={child.id} node={child} indexLabel={`${indexLabel}.${i + 1}`}
                             depth={depth + 1} selectedCardClass={selectedCardClass}
-                            availableTypes={availableTypes} isSelected={isSelected}
-                            domIdFor={domIdFor} onClick={onClick} onRemove={onRemove} onAddChild={onAddChild}
+                            getIssueTypesForElement={getIssueTypesForElement}
+                            isSelected={isSelected} domIdFor={domIdFor}
+                            onClick={onClick} onRemove={onRemove} onAddChild={onAddChild}
                         />
                     ))}
                 </div>

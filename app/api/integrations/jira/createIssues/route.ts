@@ -16,8 +16,9 @@ async function createJiraIssue(params: {
     title: string;
     description?: string;
     parentKey?: string;
+    assigneeId?: string;
 }): Promise<{ ok: boolean; key?: string; error?: unknown }> {
-    const { accessToken, cloudId, projectKey, issueType, title, description, parentKey } = params;
+    const { accessToken, cloudId, projectKey, issueType, title, description, parentKey, assigneeId } = params;
 
     const fields: Record<string, unknown> = {
         project: { key: projectKey },
@@ -35,6 +36,10 @@ async function createJiraIssue(params: {
 
     if (parentKey) {
         fields.parent = { key: parentKey };
+    }
+
+    if (assigneeId) {
+        fields.assignee = { accountId: assigneeId };
     }
 
     const url = `https://api.atlassian.com/ex/jira/${encodeURIComponent(cloudId)}/rest/api/3/issue`;
@@ -57,7 +62,6 @@ async function createJiraIssue(params: {
 async function createElementTree(params: {
     element: JiraElement;
     accessToken: string;
-    /** Fallback cloudId/projectKey used only when the element has none of its own */
     fallbackCloudId: string;
     fallbackProjectKey: string;
     parentKey?: string;
@@ -83,6 +87,7 @@ async function createElementTree(params: {
         title: element.title,
         description: element.description,
         parentKey,
+        assigneeId: element.assigneeId || undefined,
     });
 
     if (!result.ok) {
@@ -97,7 +102,7 @@ async function createElementTree(params: {
             await createElementTree({
                 element: child,
                 accessToken,
-                fallbackCloudId: cloudId,     // parent's cloud cascades to children
+                fallbackCloudId: cloudId,
                 fallbackProjectKey: projectKey,
                 parentKey: result.key,
             })

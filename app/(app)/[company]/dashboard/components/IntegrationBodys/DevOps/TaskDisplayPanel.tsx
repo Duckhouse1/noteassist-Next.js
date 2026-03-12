@@ -67,7 +67,7 @@ export const TasksDisplayPanel = ({ elements, onClick, onRemove, onCreateNewElem
     "before:content-[''] before:absolute before:left-0 before:top-0 before:h-full before:w-0.5 before:rounded-l-lg before:bg-gray-600";
 
   return (
-    <div className={`rounded-2xl border border-slate-200 bg-white shadow-sm w-full min-w-0 flex flex-col ${s("p-3 lg:p-6 min-h-[40vh] max-h-[40vh] lg:min-h-[64vh] lg:max-h-[64vh]", "p-2 min-h-[35vh] max-h-[35vh]")}`}>
+    <div className={`rounded-2xl border border-slate-200 bg-white shadow-sm w-full min-w-0 flex flex-col ${s("p-3 lg:p-6 min-h-[40vh] max-h-[40vh] lg:min-h-[64vh] lg:max-h-[64vh]", "p-2 min-h-[64vh] max-h-[64vh]")}`}>
       <h1 className={`font-semibold text-slate-900 flex-shrink-0 ${s("text-sm lg:text-lg mb-1.5 lg:mb-2", "text-xs mb-1")}`}>
         Work items
       </h1>

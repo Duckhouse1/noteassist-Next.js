@@ -77,6 +77,8 @@ export type JiraElement = {
     cloudName?: string;
     projectKey?: string;
     projectName?: string;
+    assigneeId?: string;      // ← new
+    assigneeName?: string;    // ← new
 };
 
 export interface JiraTasksContent {

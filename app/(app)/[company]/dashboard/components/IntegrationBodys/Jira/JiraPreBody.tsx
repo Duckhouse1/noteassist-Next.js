@@ -1,12 +1,12 @@
 "use client";
 
-import { useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { JiraElement } from "@/app/types/OpenAI";
 import { UserConfigContext, clientIsFromTeams } from "@/app/Contexts";
 import { useElementTree } from "@/app/Components/Hooks/useElementTree";
 import { JiraIssuePane } from "./JiraIssuePane";
 import { JiraIssueInfoPanel } from "./JiraIssueInfoPanel";
-import { JiraCloudSite, JiraProject } from "@/lib/Integrations/Jira/Configuration";
+import { JiraCloudSite, JiraIssueType, JiraProject } from "@/lib/Integrations/Jira/Configuration";
 
 function JiraMark() {
     return (
@@ -42,6 +42,48 @@ export const JiraPreBody = ({ integrationKey }: { integrationKey: string }) => {
     const [loadingProjects, setLoadingProjects] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // ── Issue-type cache shared across all nodes ──────────────────────────────
+    // Keyed by "cloudId::projectKey" → string[] of type names
+    const issueTypeCache = useRef<Map<string, string[]>>(new Map());
+    // A plain counter just to trigger re-renders when the cache gains a new entry
+    const [, setIssueTypeCacheVersion] = useState(0);
+
+    const fetchIssueTypes = useCallback(async (cloudId: string, projectKey: string) => {
+    if (!cloudId || !projectKey) return;
+    const key = `${cloudId}::${projectKey}`;
+    if (issueTypeCache.current.has(key)) return;
+
+    issueTypeCache.current.set(key, []); // ← mark as in-flight immediately
+    try {
+        const res = await fetch(
+            `/api/integrations/jira/issueTypes?cloudId=${encodeURIComponent(cloudId)}&projectKey=${encodeURIComponent(projectKey)}`
+        );
+        if (!res.ok) return;
+        const json = await res.json() as { types: JiraIssueType[] };
+        const names = (json.types ?? []).map((t) => t.name);
+        issueTypeCache.current.set(key, names);
+        setIssueTypeCacheVersion((v) => v + 1);
+    } catch {
+        issueTypeCache.current.delete(key); // allow retry on error
+    }
+}, []);
+
+    /** Returns cached project-specific types, or the global config fallback. */
+    const getIssueTypesForElement = useCallback(
+        (cloudId?: string, projectKey?: string): string[] => {
+            if (!cloudId || !projectKey) return availableTypes;
+            const key = `${cloudId}::${projectKey}`;
+            const cached = issueTypeCache.current.get(key);
+            if (cached && cached.length > 0) return cached;
+            // Not cached yet — kick off a background fetch and return fallback for now
+            fetchIssueTypes(cloudId, projectKey);
+            return availableTypes;
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [availableTypes, fetchIssueTypes]
+    );
+
+    // ── Tree ──────────────────────────────────────────────────────────────────
     const tree = useElementTree<JiraElement>({
         integrationKey,
         storagePrefix: "jira",
@@ -50,6 +92,7 @@ export const JiraPreBody = ({ integrationKey }: { integrationKey: string }) => {
         buildResponse: (elements) => ({ type: "jira_tasks", content: { elements } }),
     });
 
+    // ── Fetch sites once ──────────────────────────────────────────────────────
     useEffect(() => {
         let cancelled = false;
         (async () => {
@@ -65,6 +108,7 @@ export const JiraPreBody = ({ integrationKey }: { integrationKey: string }) => {
         return () => { cancelled = true; };
     }, []);
 
+    // ── Pre-warm projects for default cloud ───────────────────────────────────
     useEffect(() => {
         if (!defaultCloudId || projectsCache.current.has(defaultCloudId)) return;
         (async () => {
@@ -77,6 +121,14 @@ export const JiraPreBody = ({ integrationKey }: { integrationKey: string }) => {
         })();
     }, [defaultCloudId]);
 
+    // ── Pre-warm issue types for default project ──────────────────────────────
+    useEffect(() => {
+        if (defaultCloudId && defaultProjectKey) {
+            fetchIssueTypes(defaultCloudId, defaultProjectKey);
+        }
+    }, [defaultCloudId, defaultProjectKey, fetchIssueTypes]);
+
+    // ── Load projects when selected element's site changes ───────────────────
     const selectedCloudId = tree.selectedElement?.data.cloudId ?? "";
     useEffect(() => {
         if (!selectedCloudId) { setCurrentProjects([]); return; }
@@ -103,6 +155,15 @@ export const JiraPreBody = ({ integrationKey }: { integrationKey: string }) => {
         return () => { cancelled = true; };
     }, [selectedCloudId]);
 
+    // Also pre-warm issue types whenever a selected element has a full project set
+    const selectedProjectKey = tree.selectedElement?.data.projectKey ?? "";
+    useEffect(() => {
+        if (selectedCloudId && selectedProjectKey) {
+            fetchIssueTypes(selectedCloudId, selectedProjectKey);
+        }
+    }, [selectedCloudId, selectedProjectKey, fetchIssueTypes]);
+
+    // ── Handlers ──────────────────────────────────────────────────────────────
     const handleSiteChange = async (cloudId: string, cloudName: string) => {
         if (!tree.selectedElement) return;
         tree.update(tree.selectedElement.data.id, { cloudId, cloudName, projectKey: "", projectName: "" });
@@ -124,7 +185,8 @@ export const JiraPreBody = ({ integrationKey }: { integrationKey: string }) => {
         }
     };
 
-    const makeNewIssue = (type: string): JiraElement => {
+    /** New root issue — uses defaults from config. */
+    const makeNewRootIssue = (type: string): JiraElement => {
         const defaultSite = sites.find((s) => s.id === defaultCloudId);
         const defaultProj = projectsCache.current.get(defaultCloudId)?.find((p) => p.key === defaultProjectKey);
         return {
@@ -140,6 +202,19 @@ export const JiraPreBody = ({ integrationKey }: { integrationKey: string }) => {
         };
     };
 
+    /** New child issue — inherits the parent element's cloud + project. */
+    const makeNewChildIssue = (parentElement: JiraElement, type: string): JiraElement => ({
+        id: crypto.randomUUID(),
+        type,
+        title: `New ${type}`,
+        description: "",
+        children: [],
+        cloudId: parentElement.cloudId ?? "",
+        cloudName: parentElement.cloudName ?? "",
+        projectKey: parentElement.projectKey ?? "",
+        projectName: parentElement.projectName ?? "",
+    });
+
     return (
         <div className="w-full flex flex-col lg:flex-row gap-2 items-stretch lg:h-[64vh] min-h-0">
 
@@ -147,11 +222,14 @@ export const JiraPreBody = ({ integrationKey }: { integrationKey: string }) => {
                 <JiraIssuePane
                     elements={tree.elements}
                     availableTypes={availableTypes}
+                    getIssueTypesForElement={getIssueTypesForElement}
                     selectedElement={tree.selectedElement}
                     onClick={tree.select}
                     onRemove={(id) => tree.remove(id)}
-                    onAddRoot={(type) => tree.addRoot(makeNewIssue(type))}
-                    onAddChild={(parentId, type) => tree.addChild(parentId, makeNewIssue(type))}
+                    onAddRoot={(type) => tree.addRoot(makeNewRootIssue(type))}
+                    onAddChild={(parentElement, type) =>
+                        tree.addChild(parentElement.id, makeNewChildIssue(parentElement, type))
+                    }
                 />
             </div>
 
