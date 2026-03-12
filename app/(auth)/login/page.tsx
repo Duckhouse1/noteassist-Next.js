@@ -45,7 +45,8 @@ function LoginForm() {
 
     if (isTeams) {
       await microsoftTeams.app.initialize().catch(() => { });
-      microsoftTeams.authentication.notifySuccess();
+      microsoftTeams.app.notifyAppLoaded();
+      microsoftTeams.app.notifySuccess();
       // router.push("/teams");
     } else {
       router.push("/dashboard");

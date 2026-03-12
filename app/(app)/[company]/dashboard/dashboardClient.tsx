@@ -4,8 +4,7 @@ import { useMemo, useCallback, useState, useEffect, useRef } from "react";
 import { FrontPage } from "./sections/frontPage";
 import ActionsPage from "./sections/ActionsPage";
 import ActionGalleryPage from "./sections/ActionGalleryPage";
-import { ConfigurationPage, DEFAULT_CONFIG, type ConfigState, } from "./sections/ConfigurationPage";
-import { ActionsMockData } from "./components/ActionsMockData";
+import { ConfigurationPage } from "./sections/ConfigurationPage";
 import { CorporateLoader } from "@/app/Components/LoadingIcon";
 import { CurrentSiteContext, LoadingContext, NotesContext, OpenAIActionSolutionsMapContext, OrganizationModeContext, UserConfigContext } from "@/app/Contexts";
 import OpenAIService from "@/app/Services/OpenAIService";
@@ -48,7 +47,7 @@ export default function DashboardClient({ company, mode, memberShip }: { company
     const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
     const [member] = useState<MemberShip>(memberShip as MemberShip)
-    const [config, setConfig] = useState<ConfigState>(DEFAULT_CONFIG);
+    // const [config, setConfig] = useState<ConfigState>(DEFAULT_CONFIG);
     const [userConfigs, setUserConfigs] = useState<ProviderConfigItem[]>([]);
     const [workspaceConfig, setWorkspaceConfig] = useState<WorkspaceConfig | null>(null);
     const [IntegrationConnections, setIntegrationConnections] = useState<IntegrationConnection[]>([]);
